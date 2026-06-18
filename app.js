@@ -52,6 +52,12 @@
     const navLevelBtns = document.querySelectorAll('.nav-level-btn');
     const diffBtns = document.querySelectorAll('.diff-btn');
     const pdfBtn = document.getElementById('pdf-btn');
+    const easierBtn = document.getElementById('easier-btn');
+    const harderBtn = document.getElementById('harder-btn');
+    const difficultyCurrent = document.getElementById('difficulty-current');
+
+    const DIFFICULTY_ORDER = ['facile', 'medio', 'difficile'];
+    const DIFFICULTY_LABELS = { facile: 'Facile', medio: 'Medio', difficile: 'Difficile' };
 
     // ===== STATE =====
     let topics = [];
@@ -549,11 +555,29 @@
     }
 
     // ===== SHOW EXERCISE =====
+    // ===== DIFFICULTY HELPERS =====
+    function setDifficulty(diff) {
+        if (!DIFFICULTY_ORDER.includes(diff)) return;
+        currentDifficulty = diff;
+        diffBtns.forEach(b => b.classList.toggle('active', b.dataset.diff === diff));
+        updateDifficultyAdjust();
+    }
+
+    function updateDifficultyAdjust() {
+        const idx = DIFFICULTY_ORDER.indexOf(currentDifficulty);
+        if (difficultyCurrent) difficultyCurrent.textContent = DIFFICULTY_LABELS[currentDifficulty];
+        if (easierBtn) easierBtn.disabled = idx <= 0;
+        if (harderBtn) harderBtn.disabled = idx >= DIFFICULTY_ORDER.length - 1;
+    }
+
     function showExercise(exercise) {
         loadingState.hidden = true;
         errorState.hidden = true;
         exerciseCard.hidden = false;
         if (pdfBtn) pdfBtn.hidden = false;
+
+        // Sync difficulty adjust bar
+        updateDifficultyAdjust();
 
         // Collapse all panels
         collapsePanel(theoryToggle, theoryPanel);
@@ -678,9 +702,21 @@
         // Difficulty buttons
         diffBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                diffBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentDifficulty = btn.dataset.diff;
+                setDifficulty(btn.dataset.diff);
+            });
+        });
+
+        // Difficulty adjust (sotto l'esercizio): cambia difficoltà e rigenera
+        [easierBtn, harderBtn].forEach(btn => {
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                if (isGenerating || btn.disabled) return;
+                const step = parseInt(btn.dataset.step, 10);
+                const idx = DIFFICULTY_ORDER.indexOf(currentDifficulty);
+                const nextIdx = Math.min(DIFFICULTY_ORDER.length - 1, Math.max(0, idx + step));
+                if (nextIdx === idx) return;
+                setDifficulty(DIFFICULTY_ORDER[nextIdx]);
+                generateExercise();
             });
         });
 
