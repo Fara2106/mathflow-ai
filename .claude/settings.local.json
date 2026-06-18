@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude --version)",
+      "Bash(env)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -X POST https://api.anthropic.com/v1/design/mcp)",
+      "Bash(claude update *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(command -v gh)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(git config *)",
+      "Bash(grep -rin \"netlify\" . --include=*.js --include=*.html --include=*.css --include=*.md --include=*.command)",
+      "Bash(ls -la .netlify)",
+      "Bash(rm -rf .netlify)",
+      "Bash(chmod +x deploy.command)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git commit -q -m ' *)"
+    ]
+  }
+}

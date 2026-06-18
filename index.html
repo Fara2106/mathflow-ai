@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generatore di esercizi di matematica con IA — Dalla scuola elementare all'università.">
+    <title>MathFlow AI — Esercizi di Matematica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- API Key Modal -->
+    <div class="modal-overlay" id="api-key-modal" hidden>
+        <div class="modal-card">
+            <div class="modal-icon">🔑</div>
+            <h2 class="modal-title">Configura AI</h2>
+            <p class="modal-desc">Scegli il provider e incolla la tua API Key gratuita. Nessuna carta di credito richiesta!</p>
+
+            <!-- Provider selector -->
+            <div class="provider-selector" id="provider-selector">
+                <button class="provider-btn active" data-provider="groq">
+                    <span class="provider-logo">⚡</span>
+                    <span class="provider-name">Groq</span>
+                    <span class="provider-tag">velocissimo</span>
+                </button>
+                <button class="provider-btn" data-provider="openrouter">
+                    <span class="provider-logo">🔀</span>
+                    <span class="provider-name">OpenRouter</span>
+                    <span class="provider-tag">quota alta</span>
+                </button>
+            </div>
+
+            <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="modal-link" id="modal-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <span id="modal-link-text">Ottieni una API Key gratuita da Groq Console</span>
+            </a>
+            <div class="modal-input-group">
+                <input type="password" id="api-key-input" class="modal-input" placeholder="Incolla qui la tua API Key..." autocomplete="off">
+                <button class="modal-save-btn" id="api-key-save">
+                    <span>Salva e inizia</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>
+            </div>
+            <p class="modal-note">La chiave viene salvata solo nel tuo browser (localStorage).</p>
+        </div>
+    </div>
+
+    <!-- Hero / Header -->
+    <header class="hero" id="hero">
+        <div class="hero-bg-orbs">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+        <nav class="navbar" id="navbar">
+            <div class="nav-brand">
+                <span class="nav-logo">∑</span>
+                <span class="nav-title">MathFlow <span class="nav-ai-badge">AI</span></span>
+            </div>
+            <div class="nav-right">
+                <div class="nav-levels" id="nav-levels">
+                    <button class="nav-level-btn active" data-level="all">Tutti</button>
+                    <button class="nav-level-btn" data-level="Elementari">Elementari</button>
+                    <button class="nav-level-btn" data-level="Medie">Medie</button>
+                    <button class="nav-level-btn" data-level="Superiori">Superiori</button>
+                    <button class="nav-level-btn" data-level="Università">Università</button>
+                </div>
+                <button class="nav-settings-btn" id="settings-btn" aria-label="Impostazioni API Key" title="Cambia API Key">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="hero-title-line">Genera esercizi di</span>
+                <span class="hero-title-line hero-title-gradient">Matematica con l'IA</span>
+            </h1>
+            <p class="hero-subtitle">Seleziona un argomento e Groq genererà esercizi unici con teoria, svolgimento e grafici.</p>
+            
+            <!-- Search Section -->
+            <div class="search-container" id="search-container">
+                <div class="search-box">
+                    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="search" id="search-input" class="search-input" placeholder="Cerca un argomento..." autocomplete="off" aria-label="Cerca argomenti di matematica">
+                    <button class="search-clear" id="search-clear" aria-label="Cancella ricerca" hidden>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </div>
+                <div class="topic-dropdown" id="topic-dropdown" hidden>
+                    <div class="dropdown-list" id="dropdown-list" role="listbox"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+        <!-- Topic Cards Grid -->
+        <section class="topics-section" id="topics-section">
+            <div class="section-header">
+                <h2 class="section-title" id="section-title">Scegli un argomento</h2>
+                <p class="section-subtitle" id="section-subtitle">Seleziona un argomento e l'IA genererà un esercizio per te</p>
+            </div>
+            <div class="topics-grid" id="topics-grid"></div>
+        </section>
+
+        <!-- Exercise View -->
+        <section class="exercise-view" id="exercise-view" hidden>
+            <div class="exercise-top-bar">
+                <button class="back-button" id="back-button" aria-label="Torna agli argomenti">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    <span>Argomenti</span>
+                </button>
+                <div class="difficulty-selector" id="difficulty-selector">
+                    <button class="diff-btn" data-diff="facile">Facile</button>
+                    <button class="diff-btn active" data-diff="medio">Medio</button>
+                    <button class="diff-btn" data-diff="difficile">Difficile</button>
+                </div>
+                <div class="top-bar-actions">
+                    <button class="generate-btn" id="generate-btn">
+                        <svg class="generate-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m6.36-.64-2.12 2.12M21 12h-3m.64 6.36-2.12-2.12M12 21v-3m-6.36.64 2.12-2.12M3 12h3m-.64-6.36 2.12 2.12"/></svg>
+                        <span class="generate-text">Genera nuovo esercizio</span>
+                        <div class="generate-spinner" hidden></div>
+                    </button>
+                    <button class="pdf-btn" id="pdf-btn" hidden title="Scarica come PDF">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+                        <span>PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="exercise-header" id="exercise-header">
+                <span class="exercise-topic-icon" id="exercise-topic-icon"></span>
+                <div>
+                    <h2 class="exercise-topic-title" id="exercise-topic-title"></h2>
+                    <span class="exercise-level-badge" id="exercise-level-badge"></span>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div class="loading-state" id="loading-state" hidden>
+                <div class="loading-animation">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                </div>
+                <p class="loading-text">Groq sta generando il tuo esercizio...</p>
+            </div>
+
+            <!-- Error State -->
+            <div class="error-state" id="error-state" hidden>
+                <div class="error-icon">⚠️</div>
+                <p class="error-text" id="error-text">Si è verificato un errore</p>
+                <button class="retry-btn" id="retry-btn">Riprova</button>
+            </div>
+
+            <!-- Exercise Card -->
+            <article class="exercise-card" id="exercise-card" hidden>
+                <!-- Theory -->
+                <div class="exercise-section">
+                    <button class="section-toggle theory-toggle" id="theory-toggle" aria-expanded="false" aria-controls="theory-panel">
+                        <div class="toggle-left">
+                            <span class="toggle-icon">📖</span>
+                            <span class="toggle-label">Cosa serve sapere</span>
+                        </div>
+                        <span class="toggle-subtitle">La teoria necessaria</span>
+                        <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="section-panel" id="theory-panel" role="region" hidden>
+                        <div class="panel-content" id="theory-content"></div>
+                    </div>
+                </div>
+
+                <!-- Exercise Text + Result -->
+                <div class="exercise-section exercise-text-section">
+                    <div class="exercise-text-header">
+                        <span class="toggle-icon">✏️</span>
+                        <h3>Esercizio</h3>
+                    </div>
+                    <div class="exercise-text-body" id="exercise-text-body"></div>
+                    <div class="exercise-result" id="exercise-result">
+                        <span class="result-label">Risultato:</span>
+                        <div class="result-value" id="result-value"></div>
+                    </div>
+                </div>
+
+                <!-- Solution -->
+                <div class="exercise-section">
+                    <button class="section-toggle solution-toggle" id="solution-toggle" aria-expanded="false" aria-controls="solution-panel">
+                        <div class="toggle-left">
+                            <span class="toggle-icon">🧮</span>
+                            <span class="toggle-label">Svolgimento completo</span>
+                        </div>
+                        <span class="toggle-subtitle">Vedi passo per passo</span>
+                        <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="section-panel" id="solution-panel" role="region" hidden>
+                        <div class="panel-content" id="solution-content"></div>
+                    </div>
+                </div>
+
+                <!-- Graph -->
+                <div class="exercise-section">
+                    <button class="section-toggle graph-toggle" id="graph-toggle" aria-expanded="false" aria-controls="graph-panel">
+                        <div class="toggle-left">
+                            <span class="toggle-icon">📊</span>
+                            <span class="toggle-label">Visualizza grafico</span>
+                        </div>
+                        <span class="toggle-subtitle">Rappresentazione visiva</span>
+                        <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="section-panel" id="graph-panel" role="region" hidden>
+                        <div class="panel-content">
+                            <div class="graph-container" id="graph-container">
+                                <canvas id="graph-canvas" width="700" height="450"></canvas>
+                                <span class="graph-hint">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+                                    Scorri per zoom · Trascina per spostarti · Doppio clic per reset
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>MathFlow AI — Generato con ❤️ e Groq per gli studenti</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="topics.js"></script>
+    <script src="graph.js"></script>
+    <script src="gemini.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
