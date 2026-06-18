@@ -702,7 +702,10 @@
         // Difficulty buttons
         diffBtns.forEach(btn => {
             btn.addEventListener('click', () => {
+                if (isGenerating || btn.dataset.diff === currentDifficulty) return;
                 setDifficulty(btn.dataset.diff);
+                // Se c'è già un argomento aperto, rigenera subito a questa difficoltà
+                if (currentTopic) generateExercise();
             });
         });
 
