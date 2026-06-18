@@ -66,12 +66,14 @@ window.GeminiAPI = (function () {
         const graphInstructions = getGraphInstructions(graphHint);
         const difficultyMap = {
             facile: 'FACILE — numeri interi semplici, pochi passaggi, adatto a chi è alle prime armi o fa ripasso',
-            medio: 'MEDIO — difficoltà standard per il livello scolastico indicato',
-            difficile: 'DIFFICILE — esercizio complesso, possibili numeri decimali/frazioni/parametri, molti passaggi, eventuale contesto reale'
+            intermedio: 'INTERMEDIO — difficoltà standard per il livello scolastico indicato',
+            difficile: 'DIFFICILE — esercizio complesso: possibili numeri decimali/frazioni/parametri, molti passaggi, eventuale contesto reale',
+            difficilissimo: 'DIFFICILISSIMO — esercizio molto impegnativo: numeri/parametri non banali, più concetti collegati, ragionamento articolato e passaggi non immediati, sfidante anche per uno studente bravo',
+            estremo: 'ESTREMO — tra gli esercizi più difficili proponibili su questo argomento per il livello indicato: richiede intuizione, più tecniche combinate, casi particolari e passaggi tutt\'altro che ovvi, adatto a studenti eccellenti. Spingi forte sulla complessità.',
+            impossibile: 'IMPOSSIBILE — massima difficoltà possibile, livello da gara/olimpiadi della matematica: problema profondo, originale e creativo che richiede ragionamento avanzato e idee non standard. Porta la complessità al limite estremo, restando però risolvibile, matematicamente corretto e coerente con l\'argomento e con il livello scolastico indicato.'
         };
-        // Known keys → mapped text; qualsiasi altra stringa è usata come
-        // descrittore libero (serve per i livelli oltre "difficile", senza tetto).
-        const difficultyNote = difficultyMap[difficulty] || difficulty || difficultyMap.medio;
+        // Chiave nota → descrittore; fallback su una stringa libera o su "intermedio".
+        const difficultyNote = difficultyMap[difficulty] || difficulty || difficultyMap.intermedio;
 
         return `Sei un professore di matematica esperto e creativo. Genera UN SINGOLO esercizio di matematica per il livello "${level}" sull'argomento "${topic}".
 

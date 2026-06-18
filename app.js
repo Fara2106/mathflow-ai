@@ -56,17 +56,25 @@
     const harderBtn = document.getElementById('harder-btn');
     const difficultyCurrent = document.getElementById('difficulty-current');
 
-    // Livelli "con nome" usati dai pulsanti in alto (indici 0,1,2).
-    // Oltre "difficile" non c'è tetto: il livello continua a salire (Difficile+, ++…).
-    const NAMED_DIFFICULTIES = ['facile', 'medio', 'difficile'];
-    const NAMED_LABELS = { facile: 'Facile', medio: 'Medio', difficile: 'Difficile' };
+    // Scala di difficoltà a 6 livelli con nome (indici 0..5), dal più facile
+    // al più difficile. I pulsanti in alto e la barra +/- usano questi indici.
+    const NAMED_DIFFICULTIES = ['facile', 'intermedio', 'difficile', 'difficilissimo', 'estremo', 'impossibile'];
+    const NAMED_LABELS = {
+        facile: 'Facile',
+        intermedio: 'Intermedio',
+        difficile: 'Difficile',
+        difficilissimo: 'Difficilissimo',
+        estremo: 'Estremo',
+        impossibile: 'Impossibile'
+    };
+    const MAX_DIFFICULTY = NAMED_DIFFICULTIES.length - 1;
 
     // ===== STATE =====
     let topics = [];
     let currentLevel = 'all';
     let currentTopic = null;
     let isGenerating = false;
-    let difficultyLevel = 1; // 0=facile, 1=medio, 2=difficile, 3+=oltre (senza tetto)
+    let difficultyLevel = 1; // indice in NAMED_DIFFICULTIES (default: intermedio)
 
     // ===== INIT =====
     function init() {
@@ -557,33 +565,26 @@
     }
 
     // ===== DIFFICULTY HELPERS =====
-    // Descrittore inviato all'LLM. Livelli 0-2 = chiavi note; oltre = testo libero
-    // che chiede un esercizio sempre più impegnativo (scala aperta, senza tetto).
+    // Chiave inviata all'LLM (gemini.js la mappa sul descrittore di difficoltà).
     function apiDifficulty() {
-        if (difficultyLevel <= 2) return NAMED_DIFFICULTIES[difficultyLevel];
-        const intensity = difficultyLevel - 2; // 1, 2, 3, ...
-        return `MOLTO DIFFICILE (intensità ${intensity}) — un esercizio decisamente più impegnativo del normale per questo livello scolastico. Usa numeri/frazioni/parametri non banali, più passaggi e ragionamento avanzato, collegando più concetti. Ogni incremento di intensità deve aumentare sensibilmente la complessità: a intensità ${intensity} l'esercizio deve essere tra i più difficili proponibili su questo argomento, sfidante anche per uno studente bravo, pur restando risolvibile e matematicamente corretto.`;
+        return NAMED_DIFFICULTIES[difficultyLevel];
     }
 
-    // Etichetta mostrata all'utente: Facile/Medio/Difficile, poi Difficile+, ++…
+    // Etichetta mostrata all'utente.
     function difficultyLabel() {
-        if (difficultyLevel <= 2) return NAMED_LABELS[NAMED_DIFFICULTIES[difficultyLevel]];
-        return 'Difficile' + '+'.repeat(difficultyLevel - 2);
+        return NAMED_LABELS[NAMED_DIFFICULTIES[difficultyLevel]];
     }
 
     function setDifficultyLevel(level) {
-        difficultyLevel = Math.max(0, level); // nessun tetto, pavimento a 0 (Facile)
-        // Sincronizza i pulsanti in alto: evidenzia il nome corrispondente, oppure
-        // "Difficile" quando si è oltre la scala con nome.
-        const activeIdx = Math.min(difficultyLevel, 2);
-        diffBtns.forEach(b => b.classList.toggle('active', b.dataset.diff === NAMED_DIFFICULTIES[activeIdx]));
+        difficultyLevel = Math.min(MAX_DIFFICULTY, Math.max(0, level));
+        diffBtns.forEach(b => b.classList.toggle('active', b.dataset.diff === NAMED_DIFFICULTIES[difficultyLevel]));
         updateDifficultyAdjust();
     }
 
     function updateDifficultyAdjust() {
         if (difficultyCurrent) difficultyCurrent.textContent = difficultyLabel();
         if (easierBtn) easierBtn.disabled = difficultyLevel <= 0;
-        if (harderBtn) harderBtn.disabled = false; // mai disabilitato: difficoltà senza limite
+        if (harderBtn) harderBtn.disabled = difficultyLevel >= MAX_DIFFICULTY;
     }
 
     // ===== SHOW EXERCISE =====

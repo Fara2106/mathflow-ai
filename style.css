@@ -1065,6 +1065,7 @@ body {
 .difficulty-selector {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 4px;
     background: var(--color-bg);
     border: 1.5px solid var(--color-border-strong);
@@ -1073,7 +1074,7 @@ body {
 }
 
 .diff-btn {
-    padding: var(--space-2) var(--space-4);
+    padding: var(--space-2) var(--space-3);
     border: none;
     border-radius: var(--radius-full);
     background: transparent;
@@ -1097,16 +1098,34 @@ body {
     box-shadow: 0 2px 8px rgba(52, 199, 89, 0.35);
 }
 
-.diff-btn.active[data-diff="medio"] {
+.diff-btn.active[data-diff="intermedio"] {
     background: #007AFF;
     color: white;
     box-shadow: 0 2px 8px rgba(0, 122, 255, 0.35);
 }
 
 .diff-btn.active[data-diff="difficile"] {
+    background: #FF9500;
+    color: white;
+    box-shadow: 0 2px 8px rgba(255, 149, 0, 0.35);
+}
+
+.diff-btn.active[data-diff="difficilissimo"] {
     background: #FF3B30;
     color: white;
     box-shadow: 0 2px 8px rgba(255, 59, 48, 0.35);
+}
+
+.diff-btn.active[data-diff="estremo"] {
+    background: #AF52DE;
+    color: white;
+    box-shadow: 0 2px 8px rgba(175, 82, 222, 0.35);
+}
+
+.diff-btn.active[data-diff="impossibile"] {
+    background: #1C1C1E;
+    color: white;
+    box-shadow: 0 2px 8px rgba(28, 28, 30, 0.45);
 }
 
 /* ===== TOP BAR ACTIONS ===== */
