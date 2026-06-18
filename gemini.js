@@ -69,7 +69,9 @@ window.GeminiAPI = (function () {
             medio: 'MEDIO — difficoltà standard per il livello scolastico indicato',
             difficile: 'DIFFICILE — esercizio complesso, possibili numeri decimali/frazioni/parametri, molti passaggi, eventuale contesto reale'
         };
-        const difficultyNote = difficultyMap[difficulty] || difficultyMap.medio;
+        // Known keys → mapped text; qualsiasi altra stringa è usata come
+        // descrittore libero (serve per i livelli oltre "difficile", senza tetto).
+        const difficultyNote = difficultyMap[difficulty] || difficulty || difficultyMap.medio;
 
         return `Sei un professore di matematica esperto e creativo. Genera UN SINGOLO esercizio di matematica per il livello "${level}" sull'argomento "${topic}".
 

@@ -56,15 +56,17 @@
     const harderBtn = document.getElementById('harder-btn');
     const difficultyCurrent = document.getElementById('difficulty-current');
 
-    const DIFFICULTY_ORDER = ['facile', 'medio', 'difficile'];
-    const DIFFICULTY_LABELS = { facile: 'Facile', medio: 'Medio', difficile: 'Difficile' };
+    // Livelli "con nome" usati dai pulsanti in alto (indici 0,1,2).
+    // Oltre "difficile" non c'è tetto: il livello continua a salire (Difficile+, ++…).
+    const NAMED_DIFFICULTIES = ['facile', 'medio', 'difficile'];
+    const NAMED_LABELS = { facile: 'Facile', medio: 'Medio', difficile: 'Difficile' };
 
     // ===== STATE =====
     let topics = [];
     let currentLevel = 'all';
     let currentTopic = null;
     let isGenerating = false;
-    let currentDifficulty = 'medio';
+    let difficultyLevel = 1; // 0=facile, 1=medio, 2=difficile, 3+=oltre (senza tetto)
 
     // ===== INIT =====
     function init() {
@@ -393,7 +395,7 @@
                     if (loadingTextEl) loadingTextEl.textContent = statusMsg;
                     generateText.textContent = statusMsg;
                 },
-                currentDifficulty
+                apiDifficulty()
             );
 
             showExercise(exercise);
@@ -554,21 +556,37 @@
         return s;
     }
 
-    // ===== SHOW EXERCISE =====
     // ===== DIFFICULTY HELPERS =====
-    function setDifficulty(diff) {
-        if (!DIFFICULTY_ORDER.includes(diff)) return;
-        currentDifficulty = diff;
-        diffBtns.forEach(b => b.classList.toggle('active', b.dataset.diff === diff));
+    // Descrittore inviato all'LLM. Livelli 0-2 = chiavi note; oltre = testo libero
+    // che chiede un esercizio sempre più impegnativo (scala aperta, senza tetto).
+    function apiDifficulty() {
+        if (difficultyLevel <= 2) return NAMED_DIFFICULTIES[difficultyLevel];
+        const intensity = difficultyLevel - 2; // 1, 2, 3, ...
+        return `MOLTO DIFFICILE (intensità ${intensity}) — un esercizio decisamente più impegnativo del normale per questo livello scolastico. Usa numeri/frazioni/parametri non banali, più passaggi e ragionamento avanzato, collegando più concetti. Ogni incremento di intensità deve aumentare sensibilmente la complessità: a intensità ${intensity} l'esercizio deve essere tra i più difficili proponibili su questo argomento, sfidante anche per uno studente bravo, pur restando risolvibile e matematicamente corretto.`;
+    }
+
+    // Etichetta mostrata all'utente: Facile/Medio/Difficile, poi Difficile+, ++…
+    function difficultyLabel() {
+        if (difficultyLevel <= 2) return NAMED_LABELS[NAMED_DIFFICULTIES[difficultyLevel]];
+        return 'Difficile' + '+'.repeat(difficultyLevel - 2);
+    }
+
+    function setDifficultyLevel(level) {
+        difficultyLevel = Math.max(0, level); // nessun tetto, pavimento a 0 (Facile)
+        // Sincronizza i pulsanti in alto: evidenzia il nome corrispondente, oppure
+        // "Difficile" quando si è oltre la scala con nome.
+        const activeIdx = Math.min(difficultyLevel, 2);
+        diffBtns.forEach(b => b.classList.toggle('active', b.dataset.diff === NAMED_DIFFICULTIES[activeIdx]));
         updateDifficultyAdjust();
     }
 
     function updateDifficultyAdjust() {
-        const idx = DIFFICULTY_ORDER.indexOf(currentDifficulty);
-        if (difficultyCurrent) difficultyCurrent.textContent = DIFFICULTY_LABELS[currentDifficulty];
-        if (easierBtn) easierBtn.disabled = idx <= 0;
-        if (harderBtn) harderBtn.disabled = idx >= DIFFICULTY_ORDER.length - 1;
+        if (difficultyCurrent) difficultyCurrent.textContent = difficultyLabel();
+        if (easierBtn) easierBtn.disabled = difficultyLevel <= 0;
+        if (harderBtn) harderBtn.disabled = false; // mai disabilitato: difficoltà senza limite
     }
+
+    // ===== SHOW EXERCISE =====
 
     function showExercise(exercise) {
         loadingState.hidden = true;
@@ -699,26 +717,27 @@
             });
         });
 
-        // Difficulty buttons
+        // Difficulty buttons (in alto): impostano un livello assoluto e rigenerano
         diffBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                if (isGenerating || btn.dataset.diff === currentDifficulty) return;
-                setDifficulty(btn.dataset.diff);
+                const targetLevel = NAMED_DIFFICULTIES.indexOf(btn.dataset.diff);
+                if (isGenerating || targetLevel < 0 || targetLevel === difficultyLevel) return;
+                setDifficultyLevel(targetLevel);
                 // Se c'è già un argomento aperto, rigenera subito a questa difficoltà
                 if (currentTopic) generateExercise();
             });
         });
 
-        // Difficulty adjust (sotto l'esercizio): cambia difficoltà e rigenera
+        // Difficulty adjust (sotto l'esercizio): +1/-1 livello e rigenera.
+        // "Più difficile" non ha tetto; "Più facile" si ferma a Facile.
         [easierBtn, harderBtn].forEach(btn => {
             if (!btn) return;
             btn.addEventListener('click', () => {
                 if (isGenerating || btn.disabled) return;
                 const step = parseInt(btn.dataset.step, 10);
-                const idx = DIFFICULTY_ORDER.indexOf(currentDifficulty);
-                const nextIdx = Math.min(DIFFICULTY_ORDER.length - 1, Math.max(0, idx + step));
-                if (nextIdx === idx) return;
-                setDifficulty(DIFFICULTY_ORDER[nextIdx]);
+                const next = difficultyLevel + step;
+                if (next < 0) return;
+                setDifficultyLevel(next);
                 generateExercise();
             });
         });
@@ -727,7 +746,7 @@
          if (pdfBtn) {
             pdfBtn.addEventListener('click', () => {
                 const topicName = currentTopic ? currentTopic.topic : 'esercizio';
-                const diffLabel = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+                const diffLabel = difficultyLabel();
                 const fileName = `MathFlow_${topicName}_${diffLabel}.pdf`.replace(/\s+/g, '_');
 
                 // Expand all panels for PDF
