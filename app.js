@@ -472,6 +472,11 @@
         const total = results.length;
         let lastError = null;
 
+        // Assegnato prima del loop: results è per riferimento, quindi gli
+        // esercizi già generati restano in lastBatch anche se il loop viene
+        // interrotto da un errore di chiave API.
+        lastBatch = results;
+
         try {
             for (let i = 0; i < total; i++) {
                 if (results[i]) continue;
@@ -499,8 +504,6 @@
                 }
             }
 
-            lastBatch = results;
-
             if (results.every(r => !r)) {
                 throw lastError || new Error('Si è verificato un errore. Riprova.');
             }
@@ -525,7 +528,9 @@
         batchWarning.hidden = missing === 0;
         if (missing > 0) {
             const ok = results.length - missing;
-            batchWarningText.textContent = `Generati ${ok} esercizi su ${results.length}. Alcuni non sono riusciti (probabile limite API).`;
+            batchWarningText.textContent = ok === 1
+                ? `Generato 1 esercizio su ${results.length}. Alcuni non sono riusciti (probabile limite API).`
+                : `Generati ${ok} esercizi su ${results.length}. Alcuni non sono riusciti (probabile limite API).`;
         }
     }
 
