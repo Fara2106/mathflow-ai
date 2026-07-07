@@ -31,6 +31,8 @@
     const exerciseTopicIcon = document.getElementById('exercise-topic-icon');
     const exerciseTopicTitle = document.getElementById('exercise-topic-title');
     const exerciseLevelBadge = document.getElementById('exercise-level-badge');
+    const subtypeBar = document.getElementById('subtype-bar');
+    const subtypeChips = document.getElementById('subtype-chips');
 
     const loadingState = document.getElementById('loading-state');
     const errorState = document.getElementById('error-state');
@@ -69,6 +71,7 @@
     let currentLevel = 'all';
     let currentArea = 'all';
     let currentSearchText = '';
+    let currentSubtype = ''; // '' = "Qualsiasi"
     let currentTopic = null;
     let isGenerating = false;
     let difficultyLevel = 1; // indice in NAMED_DIFFICULTIES (default: intermedio)
@@ -378,6 +381,31 @@
         renderTopicCards();
     }
 
+    // ===== SUBTYPE CHIPS =====
+    function renderSubtypeChips() {
+        const subtypes = (currentTopic && currentTopic.subtypes) || [];
+        subtypeBar.hidden = subtypes.length === 0;
+        subtypeChips.innerHTML = '';
+        if (subtypes.length === 0) return;
+
+        const makeChip = (label, value) => {
+            const btn = document.createElement('button');
+            btn.className = 'subtype-chip' + (currentSubtype === value ? ' active' : '');
+            btn.type = 'button';
+            btn.textContent = label;
+            btn.addEventListener('click', () => {
+                if (isGenerating || currentSubtype === value) return;
+                currentSubtype = value;
+                renderSubtypeChips();
+                generateExercise();
+            });
+            return btn;
+        };
+
+        subtypeChips.appendChild(makeChip('Qualsiasi', ''));
+        subtypes.forEach(s => subtypeChips.appendChild(makeChip(s, s)));
+    }
+
     // ===== OPEN TOPIC =====
     function openTopic(topicObj) {
         if (!window.GeminiAPI.hasApiKey(window.GeminiAPI.getProvider())) {
@@ -386,6 +414,8 @@
         }
 
         currentTopic = topicObj;
+        currentSubtype = '';
+        renderSubtypeChips();
 
         topicsSection.hidden = true;
         exerciseView.hidden = false;
@@ -437,7 +467,8 @@
                     if (loadingTextEl) loadingTextEl.textContent = statusMsg;
                     generateText.textContent = statusMsg;
                 },
-                apiDifficulty()
+                apiDifficulty(),
+                currentSubtype
             );
 
             showExercises([exercise]);
