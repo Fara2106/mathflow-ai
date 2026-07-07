@@ -169,87 +169,94 @@
                 <button class="retry-btn" id="retry-btn">Riprova</button>
             </div>
 
-            <!-- Exercise Card -->
-            <article class="exercise-card" id="exercise-card" hidden>
-                <!-- Theory -->
-                <div class="exercise-section">
-                    <button class="section-toggle theory-toggle" id="theory-toggle" aria-expanded="false" aria-controls="theory-panel">
-                        <div class="toggle-left">
-                            <span class="toggle-icon">📖</span>
-                            <span class="toggle-label">Cosa serve sapere</span>
-                        </div>
-                        <span class="toggle-subtitle">La teoria necessaria</span>
-                        <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                    </button>
-                    <div class="section-panel" id="theory-panel" role="region" hidden>
-                        <div class="panel-content" id="theory-content"></div>
-                    </div>
-                </div>
+            <!-- Exercise Cards (una card per esercizio generato) -->
+            <div class="exercise-cards" id="exercise-cards" hidden></div>
 
-                <!-- Exercise Text + Result -->
-                <div class="exercise-section exercise-text-section">
-                    <div class="exercise-text-header">
-                        <span class="toggle-icon">✏️</span>
-                        <h3>Esercizio</h3>
-                    </div>
-                    <div class="exercise-text-body" id="exercise-text-body"></div>
-                    <div class="exercise-result" id="exercise-result">
-                        <span class="result-label">Risultato:</span>
-                        <div class="result-value" id="result-value"></div>
-                    </div>
-                    <!-- Difficulty adjust -->
-                    <div class="difficulty-adjust" id="difficulty-adjust">
-                        <span class="difficulty-adjust-label">Difficoltà adatta a te?</span>
-                        <div class="difficulty-adjust-btns">
-                            <button class="difficulty-adjust-btn" id="easier-btn" data-step="-1">
-                                <span>😌</span> Più facile
-                            </button>
-                            <span class="difficulty-adjust-current" id="difficulty-current">Intermedio</span>
-                            <button class="difficulty-adjust-btn" id="harder-btn" data-step="1">
-                                <span>🔥</span> Più difficile
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Solution -->
-                <div class="exercise-section">
-                    <button class="section-toggle solution-toggle" id="solution-toggle" aria-expanded="false" aria-controls="solution-panel">
-                        <div class="toggle-left">
-                            <span class="toggle-icon">🧮</span>
-                            <span class="toggle-label">Svolgimento completo</span>
-                        </div>
-                        <span class="toggle-subtitle">Vedi passo per passo</span>
-                        <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <!-- Difficulty adjust (istanza unica sotto tutte le card) -->
+            <div class="difficulty-adjust" id="difficulty-adjust" hidden>
+                <span class="difficulty-adjust-label">Difficoltà adatta a te?</span>
+                <div class="difficulty-adjust-btns">
+                    <button class="difficulty-adjust-btn" id="easier-btn" data-step="-1">
+                        <span>😌</span> Più facile
                     </button>
-                    <div class="section-panel" id="solution-panel" role="region" hidden>
-                        <div class="panel-content" id="solution-content"></div>
-                    </div>
-                </div>
-
-                <!-- Graph -->
-                <div class="exercise-section">
-                    <button class="section-toggle graph-toggle" id="graph-toggle" aria-expanded="false" aria-controls="graph-panel">
-                        <div class="toggle-left">
-                            <span class="toggle-icon">📊</span>
-                            <span class="toggle-label">Visualizza grafico</span>
-                        </div>
-                        <span class="toggle-subtitle">Rappresentazione visiva</span>
-                        <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="difficulty-adjust-current" id="difficulty-current">Intermedio</span>
+                    <button class="difficulty-adjust-btn" id="harder-btn" data-step="1">
+                        <span>🔥</span> Più difficile
                     </button>
-                    <div class="section-panel" id="graph-panel" role="region" hidden>
-                        <div class="panel-content">
-                            <div class="graph-container" id="graph-container">
-                                <canvas id="graph-canvas" width="700" height="450"></canvas>
-                                <span class="graph-hint">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
-                                    Scorri per zoom · Trascina per spostarti · Doppio clic per reset
-                                </span>
+                </div>
+            </div>
+
+            <template id="exercise-card-template">
+                <article class="exercise-card">
+                    <p class="exercise-number" hidden></p>
+
+                    <!-- Theory -->
+                    <div class="exercise-section">
+                        <button class="section-toggle theory-toggle" aria-expanded="false">
+                            <div class="toggle-left">
+                                <span class="toggle-icon">📖</span>
+                                <span class="toggle-label">Cosa serve sapere</span>
+                            </div>
+                            <span class="toggle-subtitle">La teoria necessaria</span>
+                            <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="section-panel" role="region" hidden>
+                            <div class="panel-content theory-content"></div>
+                        </div>
+                    </div>
+
+                    <!-- Exercise Text + Result -->
+                    <div class="exercise-section exercise-text-section">
+                        <div class="exercise-text-header">
+                            <span class="toggle-icon">✏️</span>
+                            <h3>Esercizio</h3>
+                        </div>
+                        <div class="exercise-text-body"></div>
+                        <div class="exercise-result">
+                            <span class="result-label">Risultato:</span>
+                            <div class="result-value"></div>
+                        </div>
+                    </div>
+
+                    <!-- Solution -->
+                    <div class="exercise-section">
+                        <button class="section-toggle solution-toggle" aria-expanded="false">
+                            <div class="toggle-left">
+                                <span class="toggle-icon">🧮</span>
+                                <span class="toggle-label">Svolgimento completo</span>
+                            </div>
+                            <span class="toggle-subtitle">Vedi passo per passo</span>
+                            <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="section-panel" role="region" hidden>
+                            <div class="panel-content solution-content"></div>
+                        </div>
+                    </div>
+
+                    <!-- Graph -->
+                    <div class="exercise-section graph-section">
+                        <button class="section-toggle graph-toggle" aria-expanded="false">
+                            <div class="toggle-left">
+                                <span class="toggle-icon">📊</span>
+                                <span class="toggle-label">Visualizza grafico</span>
+                            </div>
+                            <span class="toggle-subtitle">Rappresentazione visiva</span>
+                            <svg class="toggle-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="section-panel" role="region" hidden>
+                            <div class="panel-content">
+                                <div class="graph-container">
+                                    <canvas class="graph-canvas" width="700" height="450"></canvas>
+                                    <span class="graph-hint">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+                                        Scorri per zoom · Trascina per spostarti · Doppio clic per reset
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </article>
+                </article>
+            </template>
         </section>
     </main>
 

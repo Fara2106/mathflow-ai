@@ -36,19 +36,10 @@
     const errorState = document.getElementById('error-state');
     const errorText = document.getElementById('error-text');
     const retryBtn = document.getElementById('retry-btn');
-    const exerciseCard = document.getElementById('exercise-card');
 
-    const theoryToggle = document.getElementById('theory-toggle');
-    const theoryPanel = document.getElementById('theory-panel');
-    const theoryContent = document.getElementById('theory-content');
-    const exerciseTextBody = document.getElementById('exercise-text-body');
-    const resultValue = document.getElementById('result-value');
-    const solutionToggle = document.getElementById('solution-toggle');
-    const solutionPanel = document.getElementById('solution-panel');
-    const solutionContent = document.getElementById('solution-content');
-    const graphToggle = document.getElementById('graph-toggle');
-    const graphPanel = document.getElementById('graph-panel');
-    const graphCanvas = document.getElementById('graph-canvas');
+    const exerciseCards = document.getElementById('exercise-cards');
+    const cardTemplate = document.getElementById('exercise-card-template');
+    const difficultyAdjust = document.getElementById('difficulty-adjust');
 
     const navLevelBtns = document.querySelectorAll('.nav-level-btn');
     const diffBtns = document.querySelectorAll('.diff-btn');
@@ -449,7 +440,7 @@
                 apiDifficulty()
             );
 
-            showExercise(exercise);
+            showExercises([exercise]);
         } catch (error) {
             console.error('Generation error:', error);
             handleError(error);
@@ -467,7 +458,8 @@
     function showLoading() {
         loadingState.hidden = false;
         errorState.hidden = true;
-        exerciseCard.hidden = true;
+        exerciseCards.hidden = true;
+        if (difficultyAdjust) difficultyAdjust.hidden = true;
         if (pdfBtn) pdfBtn.hidden = true;
     }
 
@@ -630,47 +622,67 @@
         if (harderBtn) harderBtn.disabled = difficultyLevel >= MAX_DIFFICULTY;
     }
 
-    // ===== SHOW EXERCISE =====
+    // ===== SHOW EXERCISE(S) =====
 
-    function showExercise(exercise) {
-        loadingState.hidden = true;
-        errorState.hidden = true;
-        exerciseCard.hidden = false;
-        if (pdfBtn) pdfBtn.hidden = false;
+    function buildExerciseCard(exercise, index, total) {
+        const frag = cardTemplate.content.cloneNode(true);
+        const card = frag.querySelector('.exercise-card');
 
-        // Sync difficulty adjust bar
-        updateDifficultyAdjust();
-
-        // Collapse all panels
-        collapsePanel(theoryToggle, theoryPanel);
-        collapsePanel(solutionToggle, solutionPanel);
-        collapsePanel(graphToggle, graphPanel);
-
-        // Fill content (clean up any LaTeX artifacts)
-        theoryContent.innerHTML = cleanMathHtml(exercise.theory) || '<p>Teoria non disponibile.</p>';
-        exerciseTextBody.innerHTML = cleanMathHtml(exercise.exerciseText) || '<p>Esercizio non disponibile.</p>';
-        resultValue.innerHTML = cleanMathHtml(exercise.result) || '—';
-        solutionContent.innerHTML = cleanMathHtml(exercise.solution) || '<p>Svolgimento non disponibile.</p>';
-
-        // Graph
-        if (exercise.graph && exercise.graph.type) {
-            graphToggle.parentElement.hidden = false;
-            // Render graph when panel is opened
-            graphToggle._graphData = exercise.graph;
-        } else {
-            graphToggle.parentElement.hidden = true;
+        if (total > 1) {
+            const num = card.querySelector('.exercise-number');
+            num.hidden = false;
+            num.textContent = `Esercizio ${index + 1} di ${total}`;
         }
 
-        // Animate
-        exerciseCard.style.animation = 'none';
-        void exerciseCard.offsetWidth;
-        exerciseCard.style.animation = 'fadeIn 0.4s ease-out';
+        card.querySelector('.theory-content').innerHTML = cleanMathHtml(exercise.theory) || '<p>Teoria non disponibile.</p>';
+        card.querySelector('.exercise-text-body').innerHTML = cleanMathHtml(exercise.exerciseText) || '<p>Esercizio non disponibile.</p>';
+        card.querySelector('.result-value').innerHTML = cleanMathHtml(exercise.result) || '—';
+        card.querySelector('.solution-content').innerHTML = cleanMathHtml(exercise.solution) || '<p>Svolgimento non disponibile.</p>';
+
+        const graphSection = card.querySelector('.graph-section');
+        const graphToggleEl = card.querySelector('.graph-toggle');
+        if (exercise.graph && exercise.graph.type) {
+            // Render lazy: il grafico viene disegnato alla prima apertura del pannello
+            graphToggleEl._graphData = exercise.graph;
+            graphToggleEl._canvas = card.querySelector('.graph-canvas');
+        } else {
+            graphSection.hidden = true;
+        }
+
+        card.querySelectorAll('.section-toggle').forEach(btn => {
+            const panel = btn.nextElementSibling;
+            btn.addEventListener('click', () => togglePanel(btn, panel));
+        });
+
+        return frag;
+    }
+
+    function showExercises(results) {
+        loadingState.hidden = true;
+        errorState.hidden = true;
+        exerciseCards.hidden = false;
+        if (difficultyAdjust) difficultyAdjust.hidden = false;
+        if (pdfBtn) pdfBtn.hidden = false;
+
+        updateDifficultyAdjust();
+
+        exerciseCards.innerHTML = '';
+        const total = results.length;
+        results.forEach((ex, i) => {
+            if (!ex) return;
+            exerciseCards.appendChild(buildExerciseCard(ex, i, total));
+        });
+
+        exerciseCards.style.animation = 'none';
+        void exerciseCards.offsetWidth;
+        exerciseCards.style.animation = 'fadeIn 0.4s ease-out';
     }
 
     // ===== HANDLE ERROR =====
     function handleError(error) {
         loadingState.hidden = true;
-        exerciseCard.hidden = true;
+        exerciseCards.hidden = true;
+        if (difficultyAdjust) difficultyAdjust.hidden = true;
         errorState.hidden = false;
 
         if (error.message === 'API_KEY_MISSING') {
@@ -691,10 +703,10 @@
             collapsePanel(toggleBtn, panel);
         } else {
             expandPanel(toggleBtn, panel);
-            // If this is the graph panel, render graph
-            if (toggleBtn === graphToggle && toggleBtn._graphData) {
+            // Pannello grafico: disegna sul canvas della propria card
+            if (toggleBtn._graphData && toggleBtn._canvas) {
                 setTimeout(() => {
-                    window.MathGraph.render(graphCanvas, toggleBtn._graphData);
+                    window.MathGraph.render(toggleBtn._canvas, toggleBtn._graphData);
                 }, 150);
             }
         }
@@ -799,16 +811,19 @@
                 const diffLabel = difficultyLabel();
                 const fileName = `MathFlow_${topicName}_${diffLabel}.pdf`.replace(/\s+/g, '_');
 
-                // Expand all panels for PDF
-                [theoryToggle, solutionToggle, graphToggle].forEach(toggle => {
-                    const panel = toggle.nextElementSibling || document.getElementById(toggle.getAttribute('aria-controls'));
+                // Espandi tutti i pannelli di tutte le card e disegna i grafici
+                exerciseCards.querySelectorAll('.section-toggle').forEach(toggle => {
+                    const panel = toggle.nextElementSibling;
                     if (panel && panel.hidden) {
                         toggle.setAttribute('aria-expanded', 'true');
                         panel.hidden = false;
                     }
+                    if (toggle._graphData && toggle._canvas) {
+                        window.MathGraph.render(toggle._canvas, toggle._graphData);
+                    }
                 });
 
-                const element = document.getElementById('exercise-card');
+                const element = document.getElementById('exercise-cards');
 
                 const opt = {
                     margin: [12, 12, 12, 12],
@@ -824,7 +839,7 @@
                             clonedDoc.body.style.MozOsxFontSmoothing = 'auto';
                             clonedDoc.body.style.textRendering = 'geometricPrecision';
 
-                            const card = clonedDoc.getElementById('exercise-card');
+                            const card = clonedDoc.getElementById('exercise-cards');
                             if (!card) return;
 
                             // Force every element's text to be dark and bold
@@ -906,13 +921,8 @@
 
         // Exercise view
         backButton.addEventListener('click', backToTopics);
-        generateBtn.addEventListener('click', generateExercise);
-        retryBtn.addEventListener('click', generateExercise);
-
-        // Toggles
-        theoryToggle.addEventListener('click', () => togglePanel(theoryToggle, theoryPanel));
-        solutionToggle.addEventListener('click', () => togglePanel(solutionToggle, solutionPanel));
-        graphToggle.addEventListener('click', () => togglePanel(graphToggle, graphPanel));
+        generateBtn.addEventListener('click', () => generateExercise());
+        retryBtn.addEventListener('click', () => generateExercise());
 
         // Keyboard nav
         searchInput.addEventListener('keydown', (e) => {

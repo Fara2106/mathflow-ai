@@ -795,14 +795,14 @@ body {
     align-items: center; overflow: hidden; gap: var(--space-2);
 }
 
-#graph-canvas {
+.graph-canvas {
     width: 100%; max-width: 700px; height: auto;
     border-radius: var(--radius-md);
     cursor: grab; touch-action: none;
     user-select: none; -webkit-user-select: none;
 }
 
-#graph-canvas:active { cursor: grabbing; }
+.graph-canvas:active { cursor: grabbing; }
 
 .graph-hint {
     font-size: var(--font-size-xs);
@@ -1251,4 +1251,20 @@ body {
 @media (max-width: 480px) {
     .hero-title { font-size: var(--font-size-2xl); }
     .search-box { padding: var(--space-3) var(--space-4); }
+}
+
+/* ===== EXERCISE CARDS (batch) ===== */
+.exercise-cards {
+    display: flex; flex-direction: column;
+    gap: var(--space-8);
+}
+
+.exercise-cards[hidden] { display: none; }
+
+.difficulty-adjust[hidden] { display: none; }
+
+.exercise-number {
+    font-size: var(--font-size-sm); font-weight: 700;
+    color: var(--color-text-secondary);
+    text-transform: uppercase; letter-spacing: 0.05em;
 }
