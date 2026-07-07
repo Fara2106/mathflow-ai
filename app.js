@@ -17,6 +17,7 @@
     const topicDropdown = document.getElementById('topic-dropdown');
     const dropdownList = document.getElementById('dropdown-list');
     const topicsGrid = document.getElementById('topics-grid');
+    const areaFilters = document.getElementById('area-filters');
     const topicsSection = document.getElementById('topics-section');
     const exerciseView = document.getElementById('exercise-view');
     const sectionTitle = document.getElementById('section-title');
@@ -69,9 +70,13 @@
     };
     const MAX_DIFFICULTY = NAMED_DIFFICULTIES.length - 1;
 
+    // Ordine fisso delle macro-aree nei chip di filtro
+    const AREA_ORDER = ['Aritmetica', 'Algebra', 'Geometria', 'Geometria analitica', 'Trigonometria', 'Analisi', 'Probabilità e statistica'];
+
     // ===== STATE =====
     let topics = [];
     let currentLevel = 'all';
+    let currentArea = 'all';
     let currentTopic = null;
     let isGenerating = false;
     let difficultyLevel = 1; // indice in NAMED_DIFFICULTIES (default: intermedio)
@@ -85,6 +90,7 @@
             showApiKeyModal();
         }
 
+        renderAreaFilters();
         renderTopicCards();
         buildDropdown();
         bindEvents();
@@ -153,9 +159,10 @@
         }[level] || { bg: 'rgba(0,0,0,0.05)', color: '#333' };
     }
 
-    function getFilteredTopics(levelFilter, textFilter) {
+    function getFilteredTopics(levelFilter, textFilter, areaFilter) {
         return topics.filter(t => {
             if (levelFilter && levelFilter !== 'all' && t.level !== levelFilter) return false;
+            if (areaFilter && areaFilter !== 'all' && t.area !== areaFilter) return false;
             if (textFilter) {
                 const q = textFilter.toLowerCase();
                 return t.topic.toLowerCase().includes(q) || t.level.toLowerCase().includes(q);
@@ -164,9 +171,37 @@
         });
     }
 
+    // ===== AREA FILTER CHIPS =====
+    function renderAreaFilters() {
+        const levelTopics = topics.filter(t => currentLevel === 'all' || t.level === currentLevel);
+        const areas = [...new Set(levelTopics.map(t => t.area).filter(Boolean))]
+            .sort((a, b) => AREA_ORDER.indexOf(a) - AREA_ORDER.indexOf(b));
+
+        areaFilters.innerHTML = '';
+        areaFilters.hidden = areas.length === 0;
+        if (areas.length === 0) return;
+
+        const makeChip = (label, value) => {
+            const btn = document.createElement('button');
+            btn.className = 'area-chip' + (currentArea === value ? ' active' : '');
+            btn.type = 'button';
+            btn.textContent = label;
+            btn.addEventListener('click', () => {
+                if (currentArea === value) return;
+                currentArea = value;
+                renderAreaFilters();
+                renderTopicCards();
+            });
+            return btn;
+        };
+
+        areaFilters.appendChild(makeChip('Tutte', 'all'));
+        areas.forEach(a => areaFilters.appendChild(makeChip(a, a)));
+    }
+
     // ===== RENDER TOPIC CARDS =====
     function renderTopicCards() {
-        const filtered = getFilteredTopics(currentLevel);
+        const filtered = getFilteredTopics(currentLevel, '', currentArea);
         topicsGrid.innerHTML = '';
 
         if (filtered.length === 0) {
@@ -174,7 +209,7 @@
                 <div class="no-results">
                     <div class="no-results-icon">🔍</div>
                     <p class="no-results-text">Nessun argomento trovato</p>
-                    <p class="no-results-hint">Prova a cambiare il livello selezionato</p>
+                    <p class="no-results-hint">Prova a cambiare livello, area o testo di ricerca</p>
                 </div>`;
             return;
         }
@@ -713,6 +748,8 @@
                 navLevelBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentLevel = btn.dataset.level;
+                currentArea = 'all';
+                renderAreaFilters();
                 if (currentTopic) backToTopics();
                 renderTopicCards();
             });

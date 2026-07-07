@@ -1214,6 +1214,40 @@ body {
     .modal-card { padding: var(--space-6); }
 }
 
+/* ===== AREA FILTER CHIPS ===== */
+.area-filters {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+}
+
+.area-filters[hidden] { display: none; }
+
+.area-chip {
+    padding: var(--space-2) var(--space-4);
+    border: 1.5px solid var(--color-border-strong);
+    border-radius: var(--radius-full);
+    background: var(--color-surface);
+    font-family: var(--font-family);
+    font-size: var(--font-size-xs); font-weight: 600;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.area-chip:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--color-text-primary);
+}
+
+.area-chip.active {
+    background: #007AFF;
+    border-color: #007AFF;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.35);
+}
+
 @media (max-width: 480px) {
     .hero-title { font-size: var(--font-size-2xl); }
     .search-box { padding: var(--space-3) var(--space-4); }
