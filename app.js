@@ -328,8 +328,7 @@
                     <span class="dropdown-item-text">${t.topic}</span>`;
                 item.addEventListener('click', () => {
                     closeDropdown();
-                    searchInput.value = '';
-                    searchClear.hidden = true;
+                    resetSearch();
                     openTopic(t);
                 });
                 group.appendChild(item);
@@ -359,12 +358,10 @@
         altroItem.addEventListener('click', () => {
             closeDropdown();
             if (searchVal) {
-                searchInput.value = '';
-                searchClear.hidden = true;
+                resetSearch();
                 openTopic({ level: 'Superiori', topic: searchVal, icon: '✨', graphHint: 'custom' });
             } else {
-                searchInput.value = '';
-                searchClear.hidden = true;
+                resetSearch();
                 const card = document.querySelector('.altro-card');
                 if (card) {
                     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -379,6 +376,16 @@
 
     function openDropdown() { topicDropdown.hidden = false; }
     function closeDropdown() { topicDropdown.hidden = true; }
+
+    // Clears the search box AND the grid filter state. Needed when the dropdown
+    // empties the input programmatically (no 'input' event fires), otherwise
+    // currentSearchText would go stale and keep the grid filtered.
+    function resetSearch() {
+        searchInput.value = '';
+        searchClear.hidden = true;
+        currentSearchText = '';
+        renderTopicCards();
+    }
 
     // ===== OPEN TOPIC =====
     function openTopic(topicObj) {
