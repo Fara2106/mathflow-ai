@@ -77,6 +77,7 @@
     let topics = [];
     let currentLevel = 'all';
     let currentArea = 'all';
+    let currentSearchText = '';
     let currentTopic = null;
     let isGenerating = false;
     let difficultyLevel = 1; // indice in NAMED_DIFFICULTIES (default: intermedio)
@@ -201,7 +202,7 @@
 
     // ===== RENDER TOPIC CARDS =====
     function renderTopicCards() {
-        const filtered = getFilteredTopics(currentLevel, '', currentArea);
+        const filtered = getFilteredTopics(currentLevel, currentSearchText, currentArea);
         topicsGrid.innerHTML = '';
 
         if (filtered.length === 0) {
@@ -725,6 +726,8 @@
         searchInput.addEventListener('input', (e) => {
             const val = e.target.value.trim();
             searchClear.hidden = val.length === 0;
+            currentSearchText = val;
+            renderTopicCards();
             buildDropdown(val);
             if (val.length > 0) openDropdown(); else closeDropdown();
         });
@@ -735,6 +738,8 @@
         searchClear.addEventListener('click', () => {
             searchInput.value = '';
             searchClear.hidden = true;
+            currentSearchText = '';
+            renderTopicCards();
             closeDropdown();
             searchInput.focus();
         });
