@@ -132,6 +132,10 @@
                     <button class="diff-btn" data-diff="impossibile">Impossibile</button>
                 </div>
                 <div class="top-bar-actions">
+                    <label class="count-field" title="Quanti esercizi generare in un colpo">
+                        <span class="count-label">N.</span>
+                        <input type="number" id="count-input" class="count-input" min="1" max="10" step="1" value="1" inputmode="numeric" aria-label="Numero di esercizi da generare">
+                    </label>
                     <button class="generate-btn" id="generate-btn">
                         <svg class="generate-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m6.36-.64-2.12 2.12M21 12h-3m.64 6.36-2.12-2.12M12 21v-3m-6.36.64 2.12-2.12M3 12h3m-.64-6.36 2.12 2.12"/></svg>
                         <span class="generate-text">Genera nuovo esercizio</span>
@@ -173,6 +177,12 @@
                 <div class="error-icon">⚠️</div>
                 <p class="error-text" id="error-text">Si è verificato un errore</p>
                 <button class="retry-btn" id="retry-btn">Riprova</button>
+            </div>
+
+            <!-- Batch warning (generazioni parziali) -->
+            <div class="batch-warning" id="batch-warning" hidden>
+                <span class="batch-warning-text" id="batch-warning-text"></span>
+                <button class="retry-btn" id="complete-batch-btn">Completa i mancanti</button>
             </div>
 
             <!-- Exercise Cards (una card per esercizio generato) -->

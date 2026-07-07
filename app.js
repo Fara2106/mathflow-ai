@@ -24,6 +24,10 @@
     const sectionSubtitle = document.getElementById('section-subtitle');
 
     const backButton = document.getElementById('back-button');
+    const countInput = document.getElementById('count-input');
+    const batchWarning = document.getElementById('batch-warning');
+    const batchWarningText = document.getElementById('batch-warning-text');
+    const completeBatchBtn = document.getElementById('complete-batch-btn');
     const generateBtn = document.getElementById('generate-btn');
     const generateText = generateBtn.querySelector('.generate-text');
     const generateSpinner = generateBtn.querySelector('.generate-spinner');
@@ -75,6 +79,7 @@
     let currentTopic = null;
     let isGenerating = false;
     let difficultyLevel = 1; // indice in NAMED_DIFFICULTIES (default: intermedio)
+    let lastBatch = []; // esercizi dell'ultimo batch (null = generazione fallita)
 
     // ===== INIT =====
     function init() {
@@ -441,37 +446,67 @@
     }
 
     // ===== GENERATE EXERCISE =====
-    async function generateExercise() {
+    function getExerciseCount() {
+        const n = parseInt(countInput.value, 10);
+        if (isNaN(n) || n < 1) return 1;
+        return Math.min(n, 10);
+    }
+
+    async function generateExercise(onlyMissing) {
         if (isGenerating || !currentTopic) return;
         isGenerating = true;
 
-        // UI: show loading
         showLoading();
 
-        // Disable generate button
         generateBtn.disabled = true;
         generateText.textContent = 'Generazione in corso...';
         generateSpinner.hidden = false;
         generateIcon.hidden = true;
 
-        // Loading text element for status updates
         const loadingTextEl = loadingState.querySelector('.loading-text');
 
-        try {
-            const exercise = await window.GeminiAPI.generateExercise(
-                currentTopic.level,
-                currentTopic.topic,
-                currentTopic.graphHint,
-                (statusMsg) => {
-                    // Update loading UI during retries
-                    if (loadingTextEl) loadingTextEl.textContent = statusMsg;
-                    generateText.textContent = statusMsg;
-                },
-                apiDifficulty(),
-                currentSubtype
-            );
+        // onlyMissing: riusa l'ultimo batch e rigenera solo i falliti (null)
+        const results = onlyMissing === true && lastBatch.length > 0
+            ? lastBatch.slice()
+            : new Array(getExerciseCount()).fill(null);
+        const total = results.length;
+        let lastError = null;
 
-            showExercises([exercise]);
+        try {
+            for (let i = 0; i < total; i++) {
+                if (results[i]) continue;
+                const prefix = total > 1 ? `Esercizio ${i + 1} di ${total} — ` : '';
+                if (loadingTextEl) loadingTextEl.textContent = `${prefix}Groq sta creando il tuo esercizio...`;
+                try {
+                    results[i] = await window.GeminiAPI.generateExercise(
+                        currentTopic.level,
+                        currentTopic.topic,
+                        currentTopic.graphHint,
+                        (statusMsg) => {
+                            if (loadingTextEl) loadingTextEl.textContent = prefix + statusMsg;
+                            generateText.textContent = statusMsg;
+                        },
+                        apiDifficulty(),
+                        currentSubtype
+                    );
+                } catch (error) {
+                    console.error(`Generation error (esercizio ${i + 1} di ${total}):`, error);
+                    lastError = error;
+                    // Senza chiave valida fallirebbero tutti: inutile continuare
+                    if (error.message === 'API_KEY_MISSING' || error.message === 'API_KEY_INVALID') {
+                        throw error;
+                    }
+                }
+            }
+
+            lastBatch = results;
+
+            if (results.every(r => !r)) {
+                throw lastError || new Error('Si è verificato un errore. Riprova.');
+            }
+
+            showExercises(results);
+            updateBatchWarning(results);
         } catch (error) {
             console.error('Generation error:', error);
             handleError(error);
@@ -485,6 +520,15 @@
         }
     }
 
+    function updateBatchWarning(results) {
+        const missing = results.filter(r => !r).length;
+        batchWarning.hidden = missing === 0;
+        if (missing > 0) {
+            const ok = results.length - missing;
+            batchWarningText.textContent = `Generati ${ok} esercizi su ${results.length}. Alcuni non sono riusciti (probabile limite API).`;
+        }
+    }
+
     // ===== SHOW LOADING =====
     function showLoading() {
         loadingState.hidden = false;
@@ -492,6 +536,7 @@
         exerciseCards.hidden = true;
         if (difficultyAdjust) difficultyAdjust.hidden = true;
         if (pdfBtn) pdfBtn.hidden = true;
+        batchWarning.hidden = true;
     }
 
     // ===== CLEANUP LATEX artifacts in HTML strings =====
@@ -954,6 +999,12 @@
         backButton.addEventListener('click', backToTopics);
         generateBtn.addEventListener('click', () => generateExercise());
         retryBtn.addEventListener('click', () => generateExercise());
+
+        // Batch
+        completeBatchBtn.addEventListener('click', () => generateExercise(true));
+        countInput.addEventListener('change', () => {
+            countInput.value = String(getExerciseCount());
+        });
 
         // Keyboard nav
         searchInput.addEventListener('keydown', (e) => {
