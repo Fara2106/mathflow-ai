@@ -456,6 +456,10 @@
         if (isGenerating || !currentTopic) return;
         isGenerating = true;
 
+        // Snapshot: la navigazione durante il batch non deve cambiare ciò che generiamo
+        const topic = currentTopic;
+        const subtype = currentSubtype;
+
         showLoading();
 
         generateBtn.disabled = true;
@@ -484,15 +488,15 @@
                 if (loadingTextEl) loadingTextEl.textContent = `${prefix}Groq sta creando il tuo esercizio...`;
                 try {
                     results[i] = await window.GeminiAPI.generateExercise(
-                        currentTopic.level,
-                        currentTopic.topic,
-                        currentTopic.graphHint,
+                        topic.level,
+                        topic.topic,
+                        topic.graphHint,
                         (statusMsg) => {
                             if (loadingTextEl) loadingTextEl.textContent = prefix + statusMsg;
                             generateText.textContent = statusMsg;
                         },
                         apiDifficulty(),
-                        currentSubtype
+                        subtype
                     );
                 } catch (error) {
                     console.error(`Generation error (esercizio ${i + 1} di ${total}):`, error);
@@ -501,6 +505,8 @@
                     if (error.message === 'API_KEY_MISSING' || error.message === 'API_KEY_INVALID') {
                         throw error;
                     }
+                    // Quota esaurita: inutile insistere sugli esercizi restanti
+                    if (error.message === 'RATE_LIMIT') break;
                 }
             }
 
@@ -508,11 +514,14 @@
                 throw lastError || new Error('Si è verificato un errore. Riprova.');
             }
 
+            // L'utente ha cambiato argomento durante il batch: non toccare la UI
+            if (currentTopic !== topic) return;
+
             showExercises(results);
             updateBatchWarning(results);
         } catch (error) {
             console.error('Generation error:', error);
-            handleError(error);
+            if (currentTopic === topic) handleError(error);
         } finally {
             isGenerating = false;
             generateBtn.disabled = false;
@@ -520,6 +529,9 @@
             generateSpinner.hidden = true;
             generateIcon.hidden = false;
             if (loadingTextEl) loadingTextEl.textContent = 'Groq sta creando il tuo esercizio...';
+
+            // Se nel frattempo è stato aperto un altro argomento, genera per quello
+            if (currentTopic && currentTopic !== topic) generateExercise();
         }
     }
 
