@@ -59,7 +59,7 @@ esistenti.
 | Multipli, Divisori, MCD e mcm | Aritmetica | none |
 | Monomi e Polinomi | Algebra | none |
 | Teorema di Pitagora | Geometria | geometry |
-| Geometria Solida | Geometria | geometry |
+| Geometria Solida | Geometria | none |
 | Piano Cartesiano | Geometria analitica | linear |
 | Statistica e Grafici | Probabilità e statistica | bar-chart |
 | Probabilità di Base | Probabilità e statistica | bar-chart |
@@ -87,14 +87,14 @@ triennio:
 | Argomento | Area | graphHint |
 |---|---|---|
 | Parabola | Geometria analitica | quadratic |
-| Circonferenza | Geometria analitica | custom |
-| Ellisse e Iperbole | Geometria analitica | custom |
+| Circonferenza | Geometria analitica | geometry |
+| Ellisse e Iperbole | Geometria analitica | none |
 | Funzioni e Dominio | Analisi | custom |
 | Funzioni Irrazionali | Analisi | custom |
 | Goniometria | Trigonometria | trigonometric |
 | Equazioni Goniometriche | Trigonometria | trigonometric |
 | Equazioni Esponenziali | Analisi | exponential |
-| Equazioni Logaritmiche | Analisi | exponential |
+| Equazioni Logaritmiche | Analisi | custom |
 | Studio di Funzione | Analisi | custom |
 | Continuità e Asintoti | Analisi | custom |
 | Calcolo Combinatorio | Probabilità e statistica | none |
