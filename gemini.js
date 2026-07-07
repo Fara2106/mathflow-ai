@@ -62,7 +62,7 @@ window.GeminiAPI = (function () {
     /**
      * Build the system prompt
      */
-    function buildSystemPrompt(level, topic, graphHint, difficulty) {
+    function buildSystemPrompt(level, topic, graphHint, difficulty, subtype) {
         const graphInstructions = getGraphInstructions(graphHint);
         const difficultyMap = {
             facile: 'FACILE — numeri interi semplici, pochi passaggi, adatto a chi è alle prime armi o fa ripasso',
@@ -75,9 +75,13 @@ window.GeminiAPI = (function () {
         // Chiave nota → descrittore; fallback su una stringa libera o su "intermedio".
         const difficultyNote = difficultyMap[difficulty] || difficulty || difficultyMap.intermedio;
 
+        const subtypeNote = subtype
+            ? `\nTipo di esercizio richiesto: "${subtype}". L'esercizio DEVE essere specificamente di questo tipo, restando nell'ambito dell'argomento "${topic}".`
+            : '';
+
         return `Sei un professore di matematica esperto e creativo. Genera UN SINGOLO esercizio di matematica per il livello "${level}" sull'argomento "${topic}".
 
-Livello di difficoltà: ${difficultyNote}
+Livello di difficoltà: ${difficultyNote}${subtypeNote}
 
 RISPONDI ESCLUSIVAMENTE in formato JSON valido (senza markdown, senza backtick, solo il JSON). La struttura DEVE essere:
 
@@ -173,7 +177,7 @@ Scegli la forma più pertinente all'esercizio. Le coordinate dei vertici del tri
     /**
      * Generate an exercise using Groq API (with automatic retry on rate limit)
      */
-    async function generateExercise(level, topic, graphHint, onStatus, difficulty = 'medio') {
+    async function generateExercise(level, topic, graphHint, onStatus, difficulty = 'medio', subtype = '') {
         const provider = getProvider();
         const providerInfo = PROVIDERS[provider];
         const apiKey = getApiKey(provider);
@@ -181,7 +185,7 @@ Scegli la forma più pertinente all'esercizio. Le coordinate dei vertici del tri
             throw new Error('API_KEY_MISSING');
         }
 
-        const systemPrompt = buildSystemPrompt(level, topic, graphHint, difficulty);
+        const systemPrompt = buildSystemPrompt(level, topic, graphHint, difficulty, subtype);
 
         const requestBody = {
             model: providerInfo.model,
@@ -192,7 +196,7 @@ Scegli la forma più pertinente all'esercizio. Le coordinate dei vertici del tri
                 },
                 {
                     role: 'user',
-                    content: `Genera un esercizio di "${topic}" per il livello "${level}". Rispondi SOLO con JSON valido.`
+                    content: `Genera un esercizio di "${topic}"${subtype ? ` (tipo: ${subtype})` : ''} per il livello "${level}". Rispondi SOLO con JSON valido.`
                 }
             ],
             temperature: 0.9,
