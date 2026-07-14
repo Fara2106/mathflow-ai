@@ -858,11 +858,126 @@
         renderTopicCards();
     }
 
-    // Versione minima: il rendering completo della lista arriva col Task 4
+    function stripHtml(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        return tmp.textContent.trim();
+    }
+
+    function capitalizeFirst(s) {
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    // Intestazione di un gruppo argomento (icona + nome + badge livello).
+    // Costruita con createElement: topic può essere testo libero da "Altro".
+    function buildArchiveTopicHead(entry) {
+        const head = document.createElement('div');
+        head.className = 'archive-topic-head';
+        const icon = document.createElement('span');
+        icon.className = 'archive-topic-icon';
+        icon.textContent = entry.icon || '📚';
+        const name = document.createElement('span');
+        name.textContent = entry.topic;
+        const badge = document.createElement('span');
+        badge.className = 'archive-level-badge';
+        badge.textContent = entry.level;
+        const lc = getLevelColor(entry.level);
+        badge.style.background = lc.bg;
+        badge.style.color = lc.color;
+        head.appendChild(icon);
+        head.appendChild(name);
+        head.appendChild(badge);
+        return head;
+    }
+
+    function buildArchiveRow(entry, timeFmt) {
+        const row = document.createElement('div');
+        row.className = 'archive-row';
+
+        const main = document.createElement('button');
+        main.type = 'button';
+        main.className = 'archive-row-main';
+
+        const metaBits = [];
+        if (entry.subtype) metaBits.push(entry.subtype);
+        metaBits.push(NAMED_LABELS[entry.difficulty] || entry.difficulty);
+        metaBits.push(timeFmt.format(new Date(entry.savedAt)));
+        const meta = document.createElement('span');
+        meta.className = 'archive-row-meta';
+        meta.textContent = metaBits.join(' · ');
+
+        const preview = document.createElement('span');
+        preview.className = 'archive-row-preview';
+        const text = stripHtml(entry.exercise.exerciseText);
+        preview.textContent = text.length > 100 ? text.slice(0, 100) + '…' : text;
+
+        main.appendChild(meta);
+        main.appendChild(preview);
+
+        const starBtn = document.createElement('button');
+        starBtn.type = 'button';
+        starBtn.className = 'archive-star' + (entry.favorite ? ' active' : '');
+        starBtn.textContent = entry.favorite ? '★' : '☆';
+        starBtn.title = entry.favorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
+        starBtn.addEventListener('click', () => {
+            const fav = window.ExerciseHistory.toggleFavorite(entry.id);
+            entry.favorite = fav;
+            starBtn.classList.toggle('active', fav);
+            starBtn.textContent = fav ? '★' : '☆';
+            starBtn.title = fav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
+        });
+
+        const trashBtn = document.createElement('button');
+        trashBtn.type = 'button';
+        trashBtn.className = 'archive-trash';
+        trashBtn.textContent = '🗑';
+        trashBtn.title = 'Elimina esercizio';
+        trashBtn.addEventListener('click', () => {
+            if (entry.favorite && !confirm('Questo esercizio è tra i preferiti. Eliminarlo?')) return;
+            window.ExerciseHistory.remove(entry.id);
+            renderArchive();
+        });
+
+        row.appendChild(main);
+        row.appendChild(starBtn);
+        row.appendChild(trashBtn);
+        return row;
+    }
+
     function renderArchive() {
         const entries = window.ExerciseHistory.list();
         archiveEmpty.hidden = entries.length > 0;
         archiveList.innerHTML = '';
+        if (entries.length === 0) return;
+
+        const dayFmt = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const timeFmt = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+        let lastDay = null;
+        let lastTopicKey = null;
+        let topicGroupEl = null;
+
+        entries.forEach(entry => {
+            const dayLabel = capitalizeFirst(dayFmt.format(new Date(entry.savedAt)));
+            if (dayLabel !== lastDay) {
+                const h = document.createElement('h3');
+                h.className = 'archive-day-header';
+                h.textContent = dayLabel;
+                archiveList.appendChild(h);
+                lastDay = dayLabel;
+                lastTopicKey = null;
+            }
+            // Voci consecutive dello stesso argomento sotto un'unica intestazione
+            const topicKey = entry.level + '|' + entry.topic;
+            if (topicKey !== lastTopicKey) {
+                topicGroupEl = document.createElement('div');
+                topicGroupEl.className = 'archive-topic-group';
+                topicGroupEl.appendChild(buildArchiveTopicHead(entry));
+                archiveList.appendChild(topicGroupEl);
+                lastTopicKey = topicKey;
+            }
+            topicGroupEl.appendChild(buildArchiveRow(entry, timeFmt));
+        });
     }
 
     // ===== EVENTS =====

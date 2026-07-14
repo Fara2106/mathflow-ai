@@ -1366,3 +1366,94 @@ body {
     font-size: var(--font-size-lg);
     padding: var(--space-12) var(--space-4);
 }
+
+.archive-day-header {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-tertiary);
+    margin: var(--space-8) 0 var(--space-3);
+}
+
+.archive-topic-group {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--space-4);
+    overflow: hidden;
+}
+
+.archive-topic-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.archive-topic-icon { font-size: var(--font-size-xl); }
+
+.archive-level-badge {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-full);
+    margin-left: var(--space-1);
+}
+
+.archive-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+}
+.archive-row:last-child { border-bottom: none; }
+
+.archive-row-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+    background: none;
+    border: none;
+    font-family: var(--font-family);
+    cursor: pointer;
+    padding: var(--space-1) 0;
+}
+
+.archive-row-meta {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-tertiary);
+}
+
+.archive-row-preview {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.archive-star,
+.archive-trash {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: var(--font-size-lg);
+    line-height: 1;
+    padding: var(--space-1);
+    transition: transform var(--transition-fast);
+}
+.archive-star { color: var(--color-text-tertiary); }
+.archive-star.active { color: #FF9500; }
+.archive-star:hover,
+.archive-trash:hover { transform: scale(1.15); }
