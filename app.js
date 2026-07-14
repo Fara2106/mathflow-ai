@@ -60,6 +60,10 @@
     const archiveList = document.getElementById('archive-list');
     const archiveEmpty = document.getElementById('archive-empty');
     const archiveEmptyText = document.getElementById('archive-empty-text');
+    const archiveFilters = document.getElementById('archive-filters');
+    const archiveLevelChips = document.getElementById('archive-level-chips');
+    const archiveFavToggle = document.getElementById('archive-fav-toggle');
+    const archiveSearch = document.getElementById('archive-search');
 
     // Scala di difficoltà a 6 livelli con nome (indici 0..5), dal più facile
     // al più difficile. I pulsanti in alto e la barra +/- usano questi indici.
@@ -87,6 +91,11 @@
     let isGenerating = false;
     let difficultyLevel = 1; // indice in NAMED_DIFFICULTIES (default: intermedio)
     let lastBatch = []; // esercizi dell'ultimo batch (null = generazione fallita)
+
+    // Archive filters
+    let archiveLevel = 'all';
+    let archiveFavOnly = false;
+    let archiveSearchText = '';
 
     // ===== INIT =====
     function init() {
@@ -848,6 +857,11 @@
         archiveView.hidden = false;
         // Un batch in corso continua in background (come per il cambio argomento)
         currentTopic = null;
+        archiveLevel = 'all';
+        archiveFavOnly = false;
+        archiveFavToggle.classList.remove('active');
+        archiveSearch.value = '';
+        archiveSearchText = '';
         renderArchive();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -944,9 +958,49 @@
         return row;
     }
 
+    function getFilteredArchiveEntries(all) {
+        const q = archiveSearchText.toLowerCase();
+        return all.filter(en => {
+            if (archiveLevel !== 'all' && en.level !== archiveLevel) return false;
+            if (archiveFavOnly && !en.favorite) return false;
+            if (q) {
+                const hay = (en.topic + ' ' + stripHtml(en.exercise.exerciseText)).toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+    }
+
+    // Chip solo per i livelli effettivamente presenti in archivio
+    function renderArchiveLevelChips(all) {
+        const levelOrder = ['Elementari', 'Medie', 'Superiori', 'Università'];
+        const levels = [...new Set(all.map(en => en.level))]
+            .sort((a, b) => levelOrder.indexOf(a) - levelOrder.indexOf(b));
+        archiveLevelChips.innerHTML = '';
+        const makeChip = (label, value) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'area-chip' + (archiveLevel === value ? ' active' : '');
+            btn.textContent = label;
+            btn.addEventListener('click', () => {
+                archiveLevel = value;
+                renderArchive();
+            });
+            return btn;
+        };
+        archiveLevelChips.appendChild(makeChip('Tutti', 'all'));
+        levels.forEach(l => archiveLevelChips.appendChild(makeChip(l, l)));
+    }
+
     function renderArchive() {
-        const entries = window.ExerciseHistory.list();
+        const all = window.ExerciseHistory.list();
+        const entries = getFilteredArchiveEntries(all);
+        archiveFilters.hidden = all.length === 0;
+        renderArchiveLevelChips(all);
         archiveEmpty.hidden = entries.length > 0;
+        archiveEmptyText.textContent = all.length === 0
+            ? '📂 Gli esercizi che generi verranno salvati qui automaticamente.'
+            : 'Nessun esercizio corrisponde ai filtri.';
         archiveList.innerHTML = '';
         if (entries.length === 0) return;
 
@@ -1178,6 +1232,15 @@
         // Archivio
         archiveBtn.addEventListener('click', openArchive);
         archiveBackButton.addEventListener('click', closeArchive);
+        archiveFavToggle.addEventListener('click', () => {
+            archiveFavOnly = !archiveFavOnly;
+            archiveFavToggle.classList.toggle('active', archiveFavOnly);
+            renderArchive();
+        });
+        archiveSearch.addEventListener('input', (e) => {
+            archiveSearchText = e.target.value.trim();
+            renderArchive();
+        });
 
         // Batch
         completeBatchBtn.addEventListener('click', () => generateExercise(true));

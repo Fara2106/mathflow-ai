@@ -1457,3 +1457,36 @@ body {
 .archive-star.active { color: #FF9500; }
 .archive-star:hover,
 .archive-trash:hover { transform: scale(1.15); }
+
+.archive-filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.archive-level-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.archive-filter-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.archive-search {
+    flex: 1;
+    min-width: 200px;
+    padding: var(--space-2) var(--space-4);
+    border: 1.5px solid var(--color-border-strong);
+    border-radius: var(--radius-full);
+    background: var(--color-surface);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+}
+.archive-search:focus { outline: none; border-color: #007AFF; }
