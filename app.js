@@ -459,6 +459,7 @@
         // Snapshot: la navigazione durante il batch non deve cambiare ciò che generiamo
         const topic = currentTopic;
         const subtype = currentSubtype;
+        const difficultyName = apiDifficulty();
 
         showLoading();
 
@@ -498,6 +499,15 @@
                         apiDifficulty(),
                         subtype
                     );
+                    // Salvataggio dentro il loop: "Completa i mancanti" salva solo
+                    // i nuovi, e un batch interrotto conserva i pezzi riusciti
+                    window.ExerciseHistory.add({
+                        level: topic.level,
+                        topic: topic.topic,
+                        icon: topic.icon,
+                        subtype: subtype,
+                        difficulty: difficultyName
+                    }, results[i]);
                 } catch (error) {
                     console.error(`Generation error (esercizio ${i + 1} di ${total}):`, error);
                     lastError = error;
