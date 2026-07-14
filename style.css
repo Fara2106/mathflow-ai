@@ -1356,3 +1356,13 @@ body {
 }
 
 .batch-warning[hidden] { display: none; }
+
+/* ===== ARCHIVE VIEW ===== */
+.archive-view { animation: fadeIn 0.4s ease-out; }
+
+.archive-empty {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-lg);
+    padding: var(--space-12) var(--space-4);
+}

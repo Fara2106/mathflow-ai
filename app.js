@@ -54,6 +54,13 @@
     const harderBtn = document.getElementById('harder-btn');
     const difficultyCurrent = document.getElementById('difficulty-current');
 
+    const archiveBtn = document.getElementById('archive-btn');
+    const archiveView = document.getElementById('archive-view');
+    const archiveBackButton = document.getElementById('archive-back-button');
+    const archiveList = document.getElementById('archive-list');
+    const archiveEmpty = document.getElementById('archive-empty');
+    const archiveEmptyText = document.getElementById('archive-empty-text');
+
     // Scala di difficoltà a 6 livelli con nome (indici 0..5), dal più facile
     // al più difficile. I pulsanti in alto e la barra +/- usano questi indici.
     const NAMED_DIFFICULTIES = ['facile', 'intermedio', 'difficile', 'difficilissimo', 'estremo', 'impossibile'];
@@ -423,6 +430,7 @@
         renderSubtypeChips();
 
         topicsSection.hidden = true;
+        archiveView.hidden = true;
         exerciseView.hidden = false;
         exerciseView.style.animation = 'none';
         void exerciseView.offsetWidth;
@@ -833,6 +841,30 @@
         renderTopicCards();
     }
 
+    // ===== ARCHIVE =====
+    function openArchive() {
+        topicsSection.hidden = true;
+        exerciseView.hidden = true;
+        archiveView.hidden = false;
+        // Un batch in corso continua in background (come per il cambio argomento)
+        currentTopic = null;
+        renderArchive();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function closeArchive() {
+        archiveView.hidden = true;
+        topicsSection.hidden = false;
+        renderTopicCards();
+    }
+
+    // Versione minima: il rendering completo della lista arriva col Task 4
+    function renderArchive() {
+        const entries = window.ExerciseHistory.list();
+        archiveEmpty.hidden = entries.length > 0;
+        archiveList.innerHTML = '';
+    }
+
     // ===== EVENTS =====
     function bindEvents() {
         // API key
@@ -878,6 +910,7 @@
                 currentArea = 'all';
                 renderAreaFilters();
                 if (currentTopic) backToTopics();
+                if (!archiveView.hidden) closeArchive();
                 renderTopicCards();
             });
         });
@@ -1026,6 +1059,10 @@
         backButton.addEventListener('click', backToTopics);
         generateBtn.addEventListener('click', () => generateExercise());
         retryBtn.addEventListener('click', () => generateExercise());
+
+        // Archivio
+        archiveBtn.addEventListener('click', openArchive);
+        archiveBackButton.addEventListener('click', closeArchive);
 
         // Batch
         completeBatchBtn.addEventListener('click', () => generateExercise(true));
