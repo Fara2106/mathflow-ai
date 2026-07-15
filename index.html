@@ -295,6 +295,26 @@
                 <h2 class="section-title">Archivio esercizi</h2>
                 <p class="section-subtitle">Gli esercizi che generi vengono salvati qui automaticamente</p>
             </div>
+            <!-- Sincronizzazione tra dispositivi -->
+            <div class="sync-section" id="sync-section">
+                <div class="sync-setup" id="sync-setup" hidden>
+                    <p class="sync-intro">☁️ Sincronizza l'archivio tra i tuoi dispositivi con un token GitHub.</p>
+                    <ol class="sync-steps">
+                        <li>Apri <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → nuovo token</a> (accedi col tuo account)</li>
+                        <li>Nome libero, scadenza lunga, e sotto "Account permissions" imposta <strong>Gists → Read and write</strong>. Niente accesso ai repository.</li>
+                        <li>Genera il token, copialo e incollalo qui sotto. Ripeti su ogni dispositivo con lo stesso token.</li>
+                    </ol>
+                    <div class="sync-token-row">
+                        <input type="password" id="sync-token-input" class="archive-search" placeholder="github_pat_..." autocomplete="off" aria-label="Token GitHub per la sincronizzazione">
+                        <button type="button" class="retry-btn" id="sync-activate-btn">Attiva</button>
+                    </div>
+                    <p class="sync-error" id="sync-setup-error" hidden></p>
+                </div>
+                <div class="sync-status-row" id="sync-status-row" hidden>
+                    <span class="sync-status" id="sync-status">☁️ In attesa di sincronizzazione</span>
+                    <button type="button" class="sync-disconnect" id="sync-disconnect-btn">Scollega questo dispositivo</button>
+                </div>
+            </div>
             <div class="archive-filters" id="archive-filters" hidden>
                 <div class="archive-level-chips" id="archive-level-chips"></div>
                 <div class="archive-filter-row">

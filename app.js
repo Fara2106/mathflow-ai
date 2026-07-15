@@ -66,6 +66,14 @@
     const archiveFavToggle = document.getElementById('archive-fav-toggle');
     const archiveSearch = document.getElementById('archive-search');
 
+    const syncSetup = document.getElementById('sync-setup');
+    const syncTokenInput = document.getElementById('sync-token-input');
+    const syncActivateBtn = document.getElementById('sync-activate-btn');
+    const syncSetupError = document.getElementById('sync-setup-error');
+    const syncStatusRow = document.getElementById('sync-status-row');
+    const syncStatusEl = document.getElementById('sync-status');
+    const syncDisconnectBtn = document.getElementById('sync-disconnect-btn');
+
     // Scala di difficoltà a 6 livelli con nome (indici 0..5), dal più facile
     // al più difficile. I pulsanti in alto e la barra +/- usano questi indici.
     const NAMED_DIFFICULTIES = ['facile', 'intermedio', 'difficile', 'difficilissimo', 'estremo', 'impossibile'];
@@ -111,6 +119,11 @@
         renderTopicCards();
         buildDropdown();
         bindEvents();
+
+        window.ExerciseSync.onStatus((s) => {
+            lastSyncStatus = s;
+            updateSyncUI(s);
+        });
 
         // Sync all'avvio, silenziosa (no-op se non configurata)
         if (window.ExerciseSync.isConfigured()) {
@@ -886,6 +899,27 @@
         if (res && res.localChanged && !archiveView.hidden) renderArchive();
     }
 
+    let lastSyncStatus = null;
+
+    function updateSyncUI(status) {
+        const configured = window.ExerciseSync.isConfigured();
+        syncSetup.hidden = configured;
+        syncStatusRow.hidden = !configured;
+        if (!configured) return;
+        if (!status) {
+            syncStatusEl.textContent = '☁️ In attesa di sincronizzazione';
+        } else if (status.state === 'syncing') {
+            syncStatusEl.textContent = '☁️ Sincronizzazione…';
+        } else if (status.state === 'synced') {
+            const hhmm = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' }).format(status.at);
+            syncStatusEl.textContent = '✓ Sincronizzato · ' + hhmm;
+        } else if (status.state === 'error') {
+            syncStatusEl.textContent = '⚠ ' + status.message;
+        } else {
+            syncStatusEl.textContent = '☁️';
+        }
+    }
+
     // ===== ARCHIVE =====
     function openArchive() {
         topicsSection.hidden = true;
@@ -898,6 +932,7 @@
         archiveFavToggle.classList.remove('active');
         archiveSearch.value = '';
         archiveSearchText = '';
+        updateSyncUI(lastSyncStatus);
         renderArchive();
         window.ExerciseSync.syncIfStale(60).then(handleSyncResult);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1308,6 +1343,38 @@
         archiveSearch.addEventListener('input', (e) => {
             archiveSearchText = e.target.value.trim();
             renderArchive();
+        });
+
+        // Sync: attivazione e scollegamento
+        syncActivateBtn.addEventListener('click', async () => {
+            const token = syncTokenInput.value.trim();
+            if (!token) return;
+            syncActivateBtn.disabled = true;
+            syncSetupError.hidden = true;
+            try {
+                await window.ExerciseSync.setToken(token);
+                syncTokenInput.value = '';
+                updateSyncUI(lastSyncStatus = null);
+                window.ExerciseSync.syncNow().then(handleSyncResult);
+            } catch (err) {
+                syncSetupError.textContent = err.message === 'TOKEN_INVALID'
+                    ? 'Token non valido: controlla di averlo copiato per intero e che abbia il permesso Gists (Read and write).'
+                    : err.message === 'STORAGE_UNAVAILABLE'
+                        ? 'Impossibile salvare il token su questo browser (navigazione privata?).'
+                        : 'Verifica non riuscita: controlla la connessione e riprova.';
+                syncSetupError.hidden = false;
+            } finally {
+                syncActivateBtn.disabled = false;
+            }
+        });
+        syncTokenInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') syncActivateBtn.click();
+        });
+        syncDisconnectBtn.addEventListener('click', () => {
+            if (!confirm('Scollegare la sincronizzazione da questo dispositivo? L\'archivio locale resta intatto.')) return;
+            window.ExerciseSync.disconnect();
+            lastSyncStatus = null;
+            updateSyncUI(null);
         });
 
         // Batch
