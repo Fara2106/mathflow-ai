@@ -111,6 +111,11 @@
         renderTopicCards();
         buildDropdown();
         bindEvents();
+
+        // Sync all'avvio, silenziosa (no-op se non configurata)
+        if (window.ExerciseSync.isConfigured()) {
+            window.ExerciseSync.syncNow().then(handleSyncResult);
+        }
     }
 
     // ===== PROVIDER SELECTOR =====
@@ -527,7 +532,10 @@
                         subtype: subtype,
                         difficulty: difficultyName
                     }, results[i]);
-                    if (saved) savedCount++;
+                    if (saved) {
+                        savedCount++;
+                        window.ExerciseSync.schedulePush();
+                    }
                 } catch (error) {
                     console.error(`Generation error (esercizio ${i + 1} di ${total}):`, error);
                     lastError = error;
@@ -872,6 +880,12 @@
         renderTopicCards();
     }
 
+    // Dopo una sync: se il merge ha cambiato i dati locali e l'archivio
+    // è aperto, ridisegna la lista
+    function handleSyncResult(res) {
+        if (res && res.localChanged && !archiveView.hidden) renderArchive();
+    }
+
     // ===== ARCHIVE =====
     function openArchive() {
         topicsSection.hidden = true;
@@ -885,6 +899,7 @@
         archiveSearch.value = '';
         archiveSearchText = '';
         renderArchive();
+        window.ExerciseSync.syncIfStale(60).then(handleSyncResult);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -964,6 +979,7 @@
             starBtn.title = fav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
             // Col filtro preferiti attivo la voce de-stellata non deve restare in lista
             if (archiveFavOnly && !fav) renderArchive();
+            window.ExerciseSync.schedulePush();
         });
 
         const trashBtn = document.createElement('button');
@@ -975,6 +991,7 @@
             if (entry.favorite && !confirm('Questo esercizio è tra i preferiti. Eliminarlo?')) return;
             window.ExerciseHistory.remove(entry.id);
             renderArchive();
+            window.ExerciseSync.schedulePush();
         });
 
         row.appendChild(main);
