@@ -117,3 +117,163 @@ test('JSON corrotto: si riparte da vuoto e si può salvare di nuovo', () => {
     ExerciseHistory.add(META, EXERCISE);
     assert.strictEqual(ExerciseHistory.list().length, 1);
 });
+
+// ===== Sync: updatedAt, lapidi, exportState/mergeState =====
+
+// Semina direttamente le chiavi per test deterministici sul merge
+function seedState(storage, entries, tombstones) {
+    storage.setItem('mathflow_history', JSON.stringify(entries));
+    storage.setItem('mathflow_tombstones', JSON.stringify(tombstones || []));
+}
+
+function makeEntry(id, savedAt, extra) {
+    return Object.assign({
+        id, savedAt, updatedAt: savedAt,
+        level: 'Medie', topic: 'T', icon: '🧪', subtype: '',
+        difficulty: 'facile', favorite: false,
+        exercise: { theory: 't', exerciseText: 'e', result: 'r', solution: 's' }
+    }, extra || {});
+}
+
+test('add imposta updatedAt uguale a savedAt', () => {
+    useStorage(makeFakeStorage());
+    const e = ExerciseHistory.add(META, EXERCISE);
+    assert.strictEqual(e.updatedAt, e.savedAt);
+});
+
+test('toggleFavorite aggiorna updatedAt', () => {
+    const storage = makeFakeStorage();
+    seedState(storage, [makeEntry('a', '2026-01-01T00:00:00.000Z')]);
+    useStorage(storage);
+    ExerciseHistory.toggleFavorite('a');
+    const entry = ExerciseHistory.list()[0];
+    assert.ok(entry.updatedAt > '2026-01-01T00:00:00.000Z', 'updatedAt avanzato');
+    assert.strictEqual(entry.savedAt, '2026-01-01T00:00:00.000Z', 'savedAt intatto');
+});
+
+test('remove lascia una lapide', () => {
+    useStorage(makeFakeStorage());
+    const e = ExerciseHistory.add(META, EXERCISE);
+    ExerciseHistory.remove(e.id);
+    const state = ExerciseHistory.exportState();
+    assert.strictEqual(state.entries.length, 0);
+    assert.strictEqual(state.tombstones.length, 1);
+    assert.strictEqual(state.tombstones[0].id, e.id);
+    assert.ok(!Number.isNaN(Date.parse(state.tombstones[0].deletedAt)));
+});
+
+test('remove di id inesistente non lascia lapidi', () => {
+    useStorage(makeFakeStorage());
+    ExerciseHistory.remove('fantasma');
+    assert.strictEqual(ExerciseHistory.exportState().tombstones.length, 0);
+});
+
+test('exportState ha version 1, entries in ordine di inserimento, tombstones', () => {
+    useStorage(makeFakeStorage());
+    const a = ExerciseHistory.add({ ...META, topic: 'Primo' }, EXERCISE);
+    ExerciseHistory.add({ ...META, topic: 'Secondo' }, EXERCISE);
+    const state = ExerciseHistory.exportState();
+    assert.strictEqual(state.version, 1);
+    assert.strictEqual(state.entries[0].topic, 'Primo');
+    assert.strictEqual(state.entries[1].topic, 'Secondo');
+    assert.deepStrictEqual(state.tombstones, []);
+    assert.strictEqual(state.entries[0].id, a.id);
+});
+
+test('mergeState: voce remota nuova entra in locale', () => {
+    const storage = makeFakeStorage();
+    seedState(storage, [makeEntry('a', '2026-01-01T00:00:00.000Z')]);
+    useStorage(storage);
+    const res = ExerciseHistory.mergeState({
+        version: 1,
+        entries: [makeEntry('b', '2026-01-02T00:00:00.000Z')],
+        tombstones: []
+    });
+    assert.strictEqual(res.localChanged, true);
+    assert.strictEqual(res.remoteChanged, true, 'il remoto non ha la voce a');
+    const ids = ExerciseHistory.list().map(e => e.id);
+    assert.deepStrictEqual(ids, ['b', 'a'], 'list() è più-recente-prima');
+});
+
+test('mergeState: conflitto stella, vince updatedAt più recente (remoto)', () => {
+    const storage = makeFakeStorage();
+    seedState(storage, [makeEntry('a', '2026-01-01T00:00:00.000Z')]);
+    useStorage(storage);
+    const remoteA = makeEntry('a', '2026-01-01T00:00:00.000Z',
+        { favorite: true, updatedAt: '2026-01-05T00:00:00.000Z' });
+    const res = ExerciseHistory.mergeState({ version: 1, entries: [remoteA], tombstones: [] });
+    assert.strictEqual(res.localChanged, true);
+    assert.strictEqual(res.remoteChanged, false);
+    assert.strictEqual(ExerciseHistory.list()[0].favorite, true);
+});
+
+test('mergeState: conflitto stella, vince updatedAt più recente (locale)', () => {
+    const storage = makeFakeStorage();
+    seedState(storage, [makeEntry('a', '2026-01-01T00:00:00.000Z',
+        { favorite: true, updatedAt: '2026-01-09T00:00:00.000Z' })]);
+    useStorage(storage);
+    const remoteA = makeEntry('a', '2026-01-01T00:00:00.000Z',
+        { favorite: false, updatedAt: '2026-01-05T00:00:00.000Z' });
+    const res = ExerciseHistory.mergeState({ version: 1, entries: [remoteA], tombstones: [] });
+    assert.strictEqual(res.localChanged, false);
+    assert.strictEqual(res.remoteChanged, true);
+    assert.strictEqual(ExerciseHistory.list()[0].favorite, true);
+});
+
+test('mergeState: lapide remota elimina la voce locale', () => {
+    const storage = makeFakeStorage();
+    seedState(storage, [makeEntry('a', '2026-01-01T00:00:00.000Z')]);
+    useStorage(storage);
+    const res = ExerciseHistory.mergeState({
+        version: 1, entries: [],
+        tombstones: [{ id: 'a', deletedAt: '2026-01-02T00:00:00.000Z' }]
+    });
+    assert.strictEqual(res.localChanged, true);
+    assert.strictEqual(ExerciseHistory.list().length, 0);
+    assert.strictEqual(ExerciseHistory.exportState().tombstones.length, 1, 'lapide adottata');
+});
+
+test('mergeState: lapide locale vince sulla voce remota e segnala remoteChanged', () => {
+    const storage = makeFakeStorage();
+    seedState(storage, [], [{ id: 'a', deletedAt: '2026-01-03T00:00:00.000Z' }]);
+    useStorage(storage);
+    const res = ExerciseHistory.mergeState({
+        version: 1, entries: [makeEntry('a', '2026-01-01T00:00:00.000Z')], tombstones: []
+    });
+    assert.strictEqual(res.localChanged, false);
+    assert.strictEqual(res.remoteChanged, true);
+    assert.strictEqual(ExerciseHistory.list().length, 0, 'la voce non risorge');
+});
+
+test('mergeState: stati identici, nessun cambiamento', () => {
+    const storage = makeFakeStorage();
+    const entries = [makeEntry('a', '2026-01-01T00:00:00.000Z')];
+    seedState(storage, entries);
+    useStorage(storage);
+    const res = ExerciseHistory.mergeState({ version: 1, entries, tombstones: [] });
+    assert.strictEqual(res.localChanged, false);
+    assert.strictEqual(res.remoteChanged, false);
+});
+
+test('mergeState: remoto vuoto o malformato = solo remoteChanged', () => {
+    const storage = makeFakeStorage();
+    seedState(storage, [makeEntry('a', '2026-01-01T00:00:00.000Z')]);
+    useStorage(storage);
+    for (const remote of [{}, null, undefined, { version: 1 }]) {
+        const res = ExerciseHistory.mergeState(remote);
+        assert.strictEqual(res.localChanged, false, 'nulla da cambiare in locale');
+        assert.strictEqual(res.remoteChanged, true, 'il remoto va riempito');
+    }
+});
+
+test('mergeState: voce senza updatedAt usa savedAt come fallback', () => {
+    const storage = makeFakeStorage();
+    const localOld = makeEntry('a', '2026-01-01T00:00:00.000Z');
+    delete localOld.updatedAt; // voce pre-sync
+    seedState(storage, [localOld]);
+    useStorage(storage);
+    const remoteA = makeEntry('a', '2026-01-01T00:00:00.000Z',
+        { favorite: true, updatedAt: '2026-01-02T00:00:00.000Z' });
+    ExerciseHistory.mergeState({ version: 1, entries: [remoteA], tombstones: [] });
+    assert.strictEqual(ExerciseHistory.list()[0].favorite, true, 'vince il remoto più recente');
+});
