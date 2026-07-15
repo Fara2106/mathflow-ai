@@ -873,9 +873,7 @@
     }
 
     function stripHtml(html) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html || '';
-        return tmp.textContent.trim();
+        return new DOMParser().parseFromString(html || '', 'text/html').body.textContent.trim();
     }
 
     function capitalizeFirst(s) {
