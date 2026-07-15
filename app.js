@@ -928,6 +928,9 @@
         main.appendChild(meta);
         main.appendChild(preview);
 
+        main.title = 'Mostra esercizio completo';
+        main.addEventListener('click', () => toggleArchiveDetail(row, entry));
+
         const starBtn = document.createElement('button');
         starBtn.type = 'button';
         starBtn.className = 'archive-star' + (entry.favorite ? ' active' : '');
@@ -956,6 +959,27 @@
         row.appendChild(starBtn);
         row.appendChild(trashBtn);
         return row;
+    }
+
+    // Una sola riga espansa alla volta; il dettaglio riusa la card completa
+    // (pannelli richiudibili e grafico lazy inclusi, come nella vista esercizio)
+    function toggleArchiveDetail(row, entry) {
+        const existing = row.nextElementSibling;
+        if (existing && existing.classList.contains('archive-detail')) {
+            existing.remove();
+            row.classList.remove('open');
+            return;
+        }
+        const openDetail = archiveList.querySelector('.archive-detail');
+        if (openDetail) {
+            openDetail.previousElementSibling.classList.remove('open');
+            openDetail.remove();
+        }
+        const detail = document.createElement('div');
+        detail.className = 'archive-detail';
+        detail.appendChild(buildExerciseCard(entry.exercise, 0, 1));
+        row.insertAdjacentElement('afterend', detail);
+        row.classList.add('open');
     }
 
     function getFilteredArchiveEntries(all) {
