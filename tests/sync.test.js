@@ -188,6 +188,22 @@ test('remoto corrotto: stato errore e nessun PATCH distruttivo', async () => {
     await ExerciseSync.syncNow();
     assert.strictEqual(states[states.length - 1].state, 'error');
     assert.ok(!calls.some(c => c.method === 'PATCH'));
+    const before = calls.length;
+    await ExerciseSync.syncNow(); // sospesa: nessuna nuova chiamata
+    assert.strictEqual(calls.length, before);
+});
+
+test('syncNow concorrente: la seconda chiamata si accoda e riceve una sync vera', async () => {
+    const { calls } = fresh([
+        { ...GIST_LIST, status: 200, body: [{ id: 'g1', files: { 'mathflow-archive.json': {} } }] },
+        { ...GIST_GET, status: 200, body: gistWithState('g1', { version: 1, entries: [], tombstones: [] }) }
+    ], true);
+    const p1 = ExerciseSync.syncNow();
+    const p2 = ExerciseSync.syncNow();
+    assert.notStrictEqual(p1, p2, 'la seconda chiamata non riceve la promise della prima');
+    await Promise.all([p1, p2]);
+    const gets = calls.filter(c => c.method === 'GET' && GIST_GET.match.test(c.url));
+    assert.strictEqual(gets.length, 2, 'la richiesta accodata ha eseguito una sync reale');
 });
 
 test('401 durante la sync: errore token e auto-sync sospesa', async () => {

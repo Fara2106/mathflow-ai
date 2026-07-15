@@ -13,8 +13,8 @@
     const PUSH_DELAY_MS = 3000;
 
     let statusCb = null;
-    let syncing = null;      // Promise della sync in corso
-    let queued = false;      // richiesta arrivata durante una sync
+    let syncing = null;        // Promise della sync in corso
+    let queuedPromise = null;  // follow-up coalescente per le richieste arrivate durante una sync
     let pushTimer = null;
     let lastSyncAt = 0;      // epoch ms dell'ultima sync riuscita
     let suspended = false;   // token invalido o version sconosciuta
@@ -57,11 +57,11 @@
     }
 
     async function setToken(token) {
+        const s = getStorage();
+        if (!s) throw new Error('STORAGE_UNAVAILABLE');
         const res = await fetch(API + '/gists?per_page=1', { headers: headers(token) });
         if (res.status === 401 || res.status === 403) throw new Error('TOKEN_INVALID');
         if (!res.ok) throw new Error('NETWORK');
-        const s = getStorage();
-        if (!s) throw new Error('STORAGE_UNAVAILABLE');
         s.setItem(TOKEN_KEY, token);
         suspended = false;
         return true;
@@ -170,6 +170,7 @@
                 suspended = true;
                 emit('error', 'Archivio remoto più recente: ricarica l\'app su questo dispositivo');
             } else if (err.message === 'REMOTE_CORRUPT') {
+                suspended = true;
                 emit('error', 'Dati remoti illeggibili: sincronizzazione sospesa per sicurezza');
             } else {
                 emit('error', 'Sincronizzazione non riuscita: controlla la connessione');
@@ -180,15 +181,18 @@
 
     function syncNow() {
         if (syncing) {
-            queued = true;
-            return syncing;
+            // Coalesce: tutte le richieste in coda condividono UNA sync
+            // successiva e ne ricevono il risultato reale
+            if (!queuedPromise) {
+                queuedPromise = syncing.then(() => {
+                    queuedPromise = null;
+                    return syncNow();
+                });
+            }
+            return queuedPromise;
         }
         syncing = doSync().finally(() => {
             syncing = null;
-            if (queued) {
-                queued = false;
-                syncNow();
-            }
         });
         return syncing;
     }
@@ -207,7 +211,7 @@
     function _resetForTests() {
         statusCb = null;
         syncing = null;
-        queued = false;
+        queuedPromise = null;
         clearTimeout(pushTimer);
         pushTimer = null;
         lastSyncAt = 0;
