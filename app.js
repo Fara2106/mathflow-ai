@@ -60,6 +60,7 @@
     const archiveList = document.getElementById('archive-list');
     const archiveEmpty = document.getElementById('archive-empty');
     const archiveEmptyText = document.getElementById('archive-empty-text');
+    const archiveSavedNote = document.getElementById('archive-saved-note');
     const archiveFilters = document.getElementById('archive-filters');
     const archiveLevelChips = document.getElementById('archive-level-chips');
     const archiveFavToggle = document.getElementById('archive-fav-toggle');
@@ -493,6 +494,7 @@
             : new Array(getExerciseCount()).fill(null);
         const total = results.length;
         let lastError = null;
+        let savedCount = 0;
 
         // Assegnato prima del loop: results è per riferimento, quindi gli
         // esercizi già generati restano in lastBatch anche se il loop viene
@@ -518,13 +520,14 @@
                     );
                     // Salvataggio dentro il loop: "Completa i mancanti" salva solo
                     // i nuovi, e un batch interrotto conserva i pezzi riusciti
-                    window.ExerciseHistory.add({
+                    const saved = window.ExerciseHistory.add({
                         level: topic.level,
                         topic: topic.topic,
                         icon: topic.icon,
                         subtype: subtype,
                         difficulty: difficultyName
                     }, results[i]);
+                    if (saved) savedCount++;
                 } catch (error) {
                     console.error(`Generation error (esercizio ${i + 1} di ${total}):`, error);
                     lastError = error;
@@ -546,6 +549,7 @@
 
             showExercises(results);
             updateBatchWarning(results);
+            if (savedCount > 0) showSavedNote(savedCount);
         } catch (error) {
             console.error('Generation error:', error);
             if (currentTopic === topic) handleError(error);
@@ -560,6 +564,23 @@
             // Se nel frattempo è stato aperto un altro argomento, genera per quello
             if (currentTopic && currentTopic !== topic) generateExercise();
         }
+    }
+
+    // ===== SAVED-TO-ARCHIVE FEEDBACK =====
+    let savedNoteTimer = null;
+
+    function showSavedNote(count) {
+        archiveSavedNote.textContent = count === 1
+            ? '✓ Esercizio salvato nell\'archivio'
+            : `✓ ${count} esercizi salvati nell'archivio`;
+        archiveSavedNote.hidden = false;
+        clearTimeout(savedNoteTimer);
+        savedNoteTimer = setTimeout(() => { archiveSavedNote.hidden = true; }, 4000);
+
+        // Richiama l'occhio sul bottone archivio in navbar
+        archiveBtn.classList.remove('archive-btn-pulse');
+        void archiveBtn.offsetWidth;
+        archiveBtn.classList.add('archive-btn-pulse');
     }
 
     function updateBatchWarning(results) {
@@ -581,6 +602,7 @@
         if (difficultyAdjust) difficultyAdjust.hidden = true;
         if (pdfBtn) pdfBtn.hidden = true;
         batchWarning.hidden = true;
+        archiveSavedNote.hidden = true;
     }
 
     // ===== CLEANUP LATEX artifacts in HTML strings =====
@@ -940,6 +962,8 @@
             starBtn.classList.toggle('active', fav);
             starBtn.textContent = fav ? '★' : '☆';
             starBtn.title = fav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
+            // Col filtro preferiti attivo la voce de-stellata non deve restare in lista
+            if (archiveFavOnly && !fav) renderArchive();
         });
 
         const trashBtn = document.createElement('button');
@@ -1016,6 +1040,11 @@
 
     function renderArchive() {
         const all = window.ExerciseHistory.list();
+        // Il livello selezionato può non esistere più (voci eliminate):
+        // senza reset resterebbe un filtro "fantasma" senza chip visibile
+        if (archiveLevel !== 'all' && !all.some(en => en.level === archiveLevel)) {
+            archiveLevel = 'all';
+        }
         const entries = getFilteredArchiveEntries(all);
         archiveFilters.hidden = all.length === 0;
         renderArchiveLevelChips(all);
